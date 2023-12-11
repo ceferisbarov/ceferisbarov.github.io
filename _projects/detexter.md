@@ -3,7 +3,7 @@ layout: page
 title: Detexter
 description: A deep learning-based spelling correction solution for Azerbaijani language
 img: assets/img/detexter.jpeg
-importance: 1
+importance: 2
 category: work
 ---
 

@@ -52,6 +52,8 @@ html_escape_table = {
 
 def html_escape(text):
     """Produce entities within text."""
+    if isinstance(text, float):
+        return ""
     return "".join(html_escape_table.get(c,c) for c in text)
 
 

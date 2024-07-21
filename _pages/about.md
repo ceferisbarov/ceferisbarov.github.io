@@ -6,11 +6,11 @@ redirect_from:
   - /about/
   - /about.html
 ---
-I am a computer science student at GWU and a lead machine learning engineer at NLP team of [PRODATA LLC](https://prodata.az/). Currently, I am focused on development of an opne-source ecosystem for Azerbaijani NLP. We have established [aLLMA Lab](https://github.com/allmalab) to achieve this.
+I am an MS Computer Science student at GWU. I have worked as a machine learning engineer at Azerbaijan AI Lab and later as a lead machine learning engineer at NLP team of [PRODATA LLC](https://prodata.az/). Currently, I am focused on development of an opne-source ecosystem for Azerbaijani NLP. We have established [aLLMA Lab](allmalab.github.io) to achieve this.
 
 Experience
 ======
-* (2023-) Machine learning engineer, PRODATA LLC, Baku, Azerbaijan
+* (2023-2024) Machine learning engineer, PRODATA LLC, Baku, Azerbaijan
 * (2022-2023) Junior machine learning engineer, [AAILab](https://ailab.az), Space Agency of the Republic of Azerbaijan, Baku, Azerbaijan
   
 Education

@@ -7,4 +7,4 @@ redirect_from:
   - /resume
 ---
 
-[Download.](https://ceferisbarov.github.io/files/cv.pdf)
+[CV.](https://docs.google.com/document/d/1F6RaoLnkIyOfOWCBJAjdEwopnGxh6Cku/edit?usp=sharing&ouid=109851000651017306383&rtpof=true&sd=true)

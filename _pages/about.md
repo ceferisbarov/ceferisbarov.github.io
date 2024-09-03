@@ -10,8 +10,8 @@ I am Jafar Isbarov (Cəfər İsbarov), an MS Computer Science student at GWU and
 
 Experience
 ======
-* (2023-2024) Machine learning engineer, PRODATA LLC, Baku, Azerbaijan
-* (2022-2023) Junior machine learning engineer, [AAILab](https://ailab.az), Space Agency of the Republic of Azerbaijan, Baku, Azerbaijan
+* (2023-2024) Lead machine learning engineer, PRODATA LLC, Baku, Azerbaijan
+* (2022-2023) Machine learning engineer, [AAILab](https://ailab.az), Space Agency of the Republic of Azerbaijan, Baku, Azerbaijan
   
 Education
 ======

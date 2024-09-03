@@ -15,6 +15,6 @@ Experience
   
 Education
 ======
-* Foundation degree (2018), Tianjin University
-* B.Sc. (2023) in Biomedical Engineering, Azerbaijan State Oil and Industry University
 * M.Sc. (2025 expected) in Computer Science, The George Washington University
+* B.Sc. (2023) in Biomedical Engineering, Azerbaijan State Oil and Industry University
+* Foundation degree (2018), Tianjin University

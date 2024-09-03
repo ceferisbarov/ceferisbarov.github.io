@@ -6,7 +6,7 @@ redirect_from:
   - /about/
   - /about.html
 ---
-I am an MS Computer Science student at GWU and a visiting student at New York University, where I am working with professor Duygu Ataman. I have worked as a machine learning engineer at [Azerbaijan AI Lab](https://ailab.az/en) and later as a lead machine learning engineer at NLP team of [PRODATA LLC](https://prodata.az/). Currently, I am focused on development of an open-source ecosystem for Azerbaijani NLP. We have established [aLLMA Lab](allmalab.github.io) to achieve this.
+I am Jafar Isbarov (Cəfər İsbarov), an MS Computer Science student at GWU and a visiting student at New York University, where I am working with professor [Duygu Ataman](https://www.duyguataman.com/). I have worked as a machine learning engineer at [Azerbaijan AI Lab](https://ailab.az/en) and later as a lead machine learning engineer at NLP team of [PRODATA LLC](https://prodata.az/). Currently, I am focused on development of an open-source ecosystem for Azerbaijani NLP. We have established [aLLMA Lab](allmalab.github.io) to achieve this.
 
 Experience
 ======

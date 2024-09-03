@@ -6,4 +6,5 @@ author_profile: true
 redirect_from:
   - /resume
 ---
-<iframe src="https://docs.google.com/document/d/1F6RaoLnkIyOfOWCBJAjdEwopnGxh6Cku/pub?embedded=true" onload="this.width=screen.width;this.height=screen.height;></iframe>
+
+[CV.](https://docs.google.com/document/d/1F6RaoLnkIyOfOWCBJAjdEwopnGxh6Cku/pub)

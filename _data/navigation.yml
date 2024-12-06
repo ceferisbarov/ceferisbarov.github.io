@@ -1,0 +1,22 @@
+# Site navigation links
+main:
+- title: About
+  url: /
+
+# - title: Contact / FAQ
+#   url: /contact/
+
+# - title: Teaching
+#   url: /teaching/
+
+- title: Publications
+  url: /publications/
+
+- title: Talks
+  url: /talks/
+
+- title: Resume
+  url: /resume/resume.pdf
+
+- title: aLLMA Lab 
+  url: https://allmalab.github.io/

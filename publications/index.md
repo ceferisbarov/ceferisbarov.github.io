@@ -11,6 +11,9 @@ Jump to: [preprints](#preprints), peer-reviewed publications in ['24](#2024), [b
 See [Google Scolar](https://scholar.google.com/citations?user=oY7rx7MAAAAJ) for the full list.
 
 ## Preprints                        
+* **Jafar Isbarov**, Arofat Akhundjanova, Mammad Hajili, Kavsar Huseynova, Dmitry Gaynullin, Anar Rzayev, Osman Tursun, Ilshat Saetov, Rinat Kharisov, Saule Belginova, Ariana Kenbayeva, Amina Alisheva, Aizirek Turdubaeva, Abdullatif Köksal, Samir Rustamov and Duygu Ataman  
+<span style="color:navy">TUMLU: A Unified and Native Language Understanding Benchmark for Turkic Languages</span>     
+[Paper](https://arxiv.org/abs/2502.11020v1){: .btn .btn--info .btn--small}   [Dataset and code](hhttps://github.com/ceferisbarov/TUMLU){: .btn .btn--warning .btn--small}
 
 ## Peer-Reviewed Publications
 

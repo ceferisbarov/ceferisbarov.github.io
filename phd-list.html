@@ -55,12 +55,67 @@
                   <input type="text" id="filter-box" onkeyup="filterTable()" placeholder="Filter by university or state..."
                     style="width:100%;box-sizing:border-box;padding:8px;font-family:'Lato', Verdana, Helvetica, sans-serif;font-size:14px;border:1px solid #ccc;border-radius:4px;">
                 </p>
+                <p style="padding-top:8px;">
+                  <select id="state-filter" onchange="filterTable()"
+                    style="padding:8px;font-family:'Lato', Verdana, Helvetica, sans-serif;font-size:14px;border:1px solid #ccc;border-radius:4px;">
+                    <option value="">All states</option>
+                    <option value="AL">AL</option>
+                    <option value="AR">AR</option>
+                    <option value="AZ">AZ</option>
+                    <option value="CA">CA</option>
+                    <option value="CO">CO</option>
+                    <option value="CT">CT</option>
+                    <option value="DC">DC</option>
+                    <option value="DE">DE</option>
+                    <option value="FL">FL</option>
+                    <option value="GA">GA</option>
+                    <option value="HI">HI</option>
+                    <option value="IA">IA</option>
+                    <option value="ID">ID</option>
+                    <option value="IL">IL</option>
+                    <option value="IN">IN</option>
+                    <option value="KS">KS</option>
+                    <option value="KY">KY</option>
+                    <option value="LA">LA</option>
+                    <option value="MA">MA</option>
+                    <option value="MD">MD</option>
+                    <option value="ME">ME</option>
+                    <option value="MI">MI</option>
+                    <option value="MN">MN</option>
+                    <option value="MO">MO</option>
+                    <option value="MS">MS</option>
+                    <option value="MT">MT</option>
+                    <option value="NC">NC</option>
+                    <option value="ND">ND</option>
+                    <option value="NE">NE</option>
+                    <option value="NH">NH</option>
+                    <option value="NJ">NJ</option>
+                    <option value="NM">NM</option>
+                    <option value="NV">NV</option>
+                    <option value="NY">NY</option>
+                    <option value="OH">OH</option>
+                    <option value="OK">OK</option>
+                    <option value="OR">OR</option>
+                    <option value="PA">PA</option>
+                    <option value="RI">RI</option>
+                    <option value="SC">SC</option>
+                    <option value="TN">TN</option>
+                    <option value="TX">TX</option>
+                    <option value="UT">UT</option>
+                    <option value="VA">VA</option>
+                    <option value="VT">VT</option>
+                    <option value="WA">WA</option>
+                    <option value="WI">WI</option>
+                    <option value="WV">WV</option>
+                    <option value="WY">WY</option>
+                  </select>
+                </p>
 
                 <table id="phd-table" style="width:100%;border-collapse:collapse;margin-top:10px;">
                   <thead>
                     <tr style="border-bottom:2px solid #333;text-align:left;">
-                      <th style="padding:6px 8px;">Institution</th>
-                      <th style="padding:6px 8px;">State</th>
+                      <th style="padding:6px 8px;cursor:pointer;user-select:none;" onclick="sortTable(0)">Institution <span id="sort-icon-0">↕</span></th>
+                      <th style="padding:6px 8px;cursor:pointer;user-select:none;" onclick="sortTable(1)">State <span id="sort-icon-1">↕</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -231,18 +286,48 @@
                 <p id="no-results" style="display:none;color:#666;">No matches.</p>
 
                 <script>
+                  var sortState = { column: -1, ascending: true };
+
                   function filterTable() {
-                    var input = document.getElementById('filter-box');
-                    var filter = input.value.toLowerCase();
+                    var textFilter = document.getElementById('filter-box').value.toLowerCase();
+                    var stateFilter = document.getElementById('state-filter').value;
                     var rows = document.querySelectorAll('#phd-table tbody tr');
                     var visibleCount = 0;
                     rows.forEach(function (row) {
                       var text = row.textContent.toLowerCase();
-                      var match = text.indexOf(filter) > -1;
+                      var rowState = row.cells[1].textContent.trim();
+                      var textMatch = text.indexOf(textFilter) > -1;
+                      var stateMatch = stateFilter === '' || rowState === stateFilter;
+                      var match = textMatch && stateMatch;
                       row.style.display = match ? '' : 'none';
                       if (match) visibleCount++;
                     });
                     document.getElementById('no-results').style.display = visibleCount === 0 ? '' : 'none';
+                  }
+
+                  function sortTable(column) {
+                    var tbody = document.querySelector('#phd-table tbody');
+                    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
+                    if (sortState.column === column) {
+                      sortState.ascending = !sortState.ascending;
+                    } else {
+                      sortState.column = column;
+                      sortState.ascending = true;
+                    }
+
+                    rows.sort(function (a, b) {
+                      var aText = a.cells[column].textContent.trim();
+                      var bText = b.cells[column].textContent.trim();
+                      var cmp = aText.localeCompare(bText);
+                      return sortState.ascending ? cmp : -cmp;
+                    });
+
+                    rows.forEach(function (row) { tbody.appendChild(row); });
+
+                    document.getElementById('sort-icon-0').textContent = '↕';
+                    document.getElementById('sort-icon-1').textContent = '↕';
+                    document.getElementById('sort-icon-' + column).textContent = sortState.ascending ? '↑' : '↓';
                   }
                 </script>
 

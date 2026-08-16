@@ -27,7 +27,7 @@
                 </p>
                 <p>
                   A broad candidate list of US universities worth considering for a Computer Science PhD.
-                  It is <em>not</em> a ranking &mdash; it's a wide net that candidates can narrow down based on
+                  It is <em>not</em> a ranking. It's a wide net that candidates can narrow down based on
                   their own research interests, advisor fit, and funding needs. An institution is included if it
                   satisfies all three of the following:
                 </p>
@@ -38,15 +38,15 @@
                   <li>Tracked by <a href="https://csrankings.org/">CSRankings</a> as a US computer science
                     department.</li>
                   <li>Conferred at least one CS-related research doctorate between 2021 and 2023, per
-                    <a href="https://educationdata.urban.org/documentation/">IPEDS completions data</a>
-                    &mdash; counting IPEDS CIP&nbsp;11 (Computer &amp; Information Sciences) and CIP&nbsp;14.09
+                    <a href="https://educationdata.urban.org/documentation/">IPEDS completions data</a>,
+                    counting IPEDS CIP&nbsp;11 (Computer &amp; Information Sciences) and CIP&nbsp;14.09
                     (Computer Engineering), since some "Computer Science and Engineering" departments report their
                     doctorate under the latter.</li>
                 </ul>
                 <p>
                   <strong>161 institutions</strong> meet all three criteria, plus the University of Arkansas by a
                   documented manual exception (its CS/CE PhD track is real but reported under a generic
-                  "Engineering, General" degree that IPEDS doesn't separate by field) &mdash;
+                  "Engineering, General" degree that IPEDS doesn't separate by field), for
                   <strong>162</strong> in total. The full methodology, data, and code are on
                   <a href="https://github.com/ceferisbarov/phd-list-us">GitHub</a>.
                 </p>
@@ -245,6 +245,26 @@
                     document.getElementById('no-results').style.display = visibleCount === 0 ? '' : 'none';
                   }
                 </script>
+
+                <p id="notes" style="font-weight:bold; margin:0; padding-top:20px;">Notes</p>
+                <hr>
+                <p>
+                  A few schools came up during methodology checks that aren't on the list, for reasons worth
+                  knowing about rather than treating as settled:
+                </p>
+                <ul>
+                  <li><strong>Boston College</strong> and <strong>University of Missouri-Kansas City</strong> both
+                    have real PhD programs that are simply too new to show up in the 2021-2023 completions data
+                    used here (Boston College's first cohort starts Fall 2026; UMKC's standalone CS PhD launched
+                    around 2025, replacing an older interdisciplinary track). Worth a look if you want a program's
+                    earliest cohorts.</li>
+                  <li><strong>Ohio University</strong> has a PhD, but it's a fused "Electrical Engineering and
+                    Computer Science" degree reported under Electrical Engineering's CIP code, which isn't included
+                    here to avoid also pulling in unrelated EE-only programs at other schools.</li>
+                  <li><strong>University of Mississippi</strong> advertises a CS track within an "Engineering
+                    Science" doctorate, but shows zero doctorates under any CS or computer-engineering CIP code
+                    across 2021-2023, so its output couldn't be confirmed.</li>
+                </ul>
 
                 <p style="text-align:right;font-size:small;padding-top:10px;">
                   <a href="index.html">&larr; Back to homepage</a>

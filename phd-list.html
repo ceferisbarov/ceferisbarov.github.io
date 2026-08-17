@@ -9,6 +9,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" href="images/favicon/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" type="text/css" href="stylesheet.css">
+    <style>
+      .criteria-tag {
+        display: inline-block;
+        min-width: 60px;
+        text-align: center;
+        padding: 1px 7px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      .tag-r1 { background: #1772d0; }
+      .tag-csr { background: #7e57c2; }
+      .tag-ipeds { background: #26a69a; }
+      .tag-rank { background: #f09228; }
+
+      .count-box {
+        display: inline-block;
+        background: #fff3e0;
+        border: 1px solid #f0c896;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 15px;
+        margin-bottom: 4px;
+      }
+      .count-box strong { color: #d2691e; font-size: 20px; }
+
+      .callout {
+        background: #eef5fc;
+        border-left: 4px solid #1772d0;
+        border-radius: 4px;
+        padding: 14px 20px;
+        margin: 18px 0;
+      }
+      .callout h3 {
+        margin: 0 0 8px 0;
+        color: #1772d0;
+        font-size: 16px;
+      }
+      .callout p {
+        margin: 8px 0;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0 4px 0;
+      }
+      .chip {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 14px;
+        font-size: 12.5px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .chip-arwu { background: #e3f2fd; color: #0d47a1; }
+      .chip-the { background: #fff3e0; color: #c1440e; }
+      .chip-qs { background: #e8f5e9; color: #1b5e20; }
+
+      .note-box {
+        background: #f7f7f7;
+        border-left: 4px solid #999999;
+        border-radius: 4px;
+        padding: 10px 18px;
+        margin: 12px 0;
+      }
+    </style>
   </head>
 
   <body>
@@ -27,29 +98,57 @@
                 </p>
                 <p>
                   A broad candidate list of US universities worth considering for a Computer Science PhD.
-                  It is <em>not</em> a ranking. It's a wide net that candidates can narrow down based on
-                  their own research interests, advisor fit, and funding needs. An institution is included if it
-                  satisfies all three of the following:
+                  It is <em>not</em> a ranking of these programs against each other. It's a wide net that
+                  candidates can narrow down based on their own research interests, advisor fit, and funding
+                  needs. An institution is included if it satisfies all four of the following:
                 </p>
                 <ul>
-                  <li>Classified <strong>Research 1</strong> ("Very High Spending and Doctorate Production") in the
+                  <li><span class="criteria-tag tag-r1">R1</span>Classified <strong>Research 1</strong> ("Very High Spending and Doctorate Production") in the
                     <a href="https://carnegieclassifications.acenet.edu/">2025 Carnegie Classification</a> of
                     Institutions of Higher Education.</li>
-                  <li>Tracked by <a href="https://csrankings.org/">CSRankings</a> as a US computer science
+                  <li><span class="criteria-tag tag-csr">CSRankings</span>Tracked by <a href="https://csrankings.org/">CSRankings</a> as a US computer science
                     department.</li>
-                  <li>Conferred at least one CS-related research doctorate between 2021 and 2023, per
+                  <li><span class="criteria-tag tag-ipeds">IPEDS</span>Conferred at least one CS-related research doctorate between 2021 and 2023, per
                     <a href="https://educationdata.urban.org/documentation/">IPEDS completions data</a>,
                     counting IPEDS CIP&nbsp;11 (Computer &amp; Information Sciences) and CIP&nbsp;14.09
                     (Computer Engineering), since some "Computer Science and Engineering" departments report their
                     doctorate under the latter.</li>
+                  <li><span class="criteria-tag tag-rank">Top 500</span>Ranked in the global <strong>top 500</strong> by at least one of three major world
+                    university rankings. See the box below for which ones, and why we added this.</li>
                 </ul>
                 <p>
-                  <strong>161 institutions</strong> meet all three criteria, plus the University of Arkansas by a
-                  documented manual exception (its CS/CE PhD track is real but reported under a generic
-                  "Engineering, General" degree that IPEDS doesn't separate by field), for
-                  <strong>162</strong> in total. The full methodology, data, and code are on
+                  <span class="count-box"><strong>108</strong>&nbsp;institutions meet all four criteria.</span>
+                  The full methodology, data, and code are on
                   <a href="https://github.com/ceferisbarov/phd-list-us">GitHub</a>.
                 </p>
+
+                <div class="callout">
+                  <h3>Why we also require a global ranking</h3>
+                  <p>
+                    Research 1 status and a working CS PhD program show that a university does research and
+                    trains doctoral students. They don't show that its name still carries weight once a graduate
+                    leaves the department. Advisor reputation and subfield fit matter most for the day to day of
+                    a PhD, but the parent institution's overall standing keeps shaping first impressions long
+                    after graduation. Hiring committees outside computer science, industry recruiters skimming a
+                    resume, and immigration officers evaluating a degree rarely have time to look into a specific
+                    department, so they read the university's name as a stand-in for quality. A ranking floor
+                    keeps this list focused on programs backed by a name that keeps doing that work for its
+                    graduates.
+                  </p>
+                  <p>
+                    An institution qualifies if it lands in the global top 500 of at least one of these three
+                    rankings. We used the latest edition available for each as of August 2026:
+                  </p>
+                  <div class="chip-row">
+                    <span class="chip chip-arwu">ARWU (Shanghai Ranking) 2026</span>
+                    <span class="chip chip-the">THE World University Rankings 2026</span>
+                    <span class="chip chip-qs">QS World University Rankings 2027</span>
+                  </div>
+                  <p style="font-size:13px;color:#555555;margin-top:10px;">
+                    QS publishes its rankings roughly a year ahead of ARWU and THE, so its 2027 edition, not
+                    2026, is the one currently live.
+                  </p>
+                </div>
 
                 <p style="padding-top:10px;">
                   <input type="text" id="filter-box" onkeyup="filterTable()" placeholder="Filter by university or state..."
@@ -60,7 +159,6 @@
                     style="padding:8px;font-family:'Lato', Verdana, Helvetica, sans-serif;font-size:14px;border:1px solid #ccc;border-radius:4px;">
                     <option value="">All states</option>
                     <option value="AL">AL</option>
-                    <option value="AR">AR</option>
                     <option value="AZ">AZ</option>
                     <option value="CA">CA</option>
                     <option value="CO">CO</option>
@@ -71,7 +169,6 @@
                     <option value="GA">GA</option>
                     <option value="HI">HI</option>
                     <option value="IA">IA</option>
-                    <option value="ID">ID</option>
                     <option value="IL">IL</option>
                     <option value="IN">IN</option>
                     <option value="KS">KS</option>
@@ -79,19 +176,13 @@
                     <option value="LA">LA</option>
                     <option value="MA">MA</option>
                     <option value="MD">MD</option>
-                    <option value="ME">ME</option>
                     <option value="MI">MI</option>
                     <option value="MN">MN</option>
                     <option value="MO">MO</option>
-                    <option value="MS">MS</option>
-                    <option value="MT">MT</option>
                     <option value="NC">NC</option>
-                    <option value="ND">ND</option>
                     <option value="NE">NE</option>
                     <option value="NH">NH</option>
                     <option value="NJ">NJ</option>
-                    <option value="NM">NM</option>
-                    <option value="NV">NV</option>
                     <option value="NY">NY</option>
                     <option value="OH">OH</option>
                     <option value="OK">OK</option>
@@ -103,17 +194,14 @@
                     <option value="TX">TX</option>
                     <option value="UT">UT</option>
                     <option value="VA">VA</option>
-                    <option value="VT">VT</option>
                     <option value="WA">WA</option>
                     <option value="WI">WI</option>
-                    <option value="WV">WV</option>
-                    <option value="WY">WY</option>
                   </select>
                 </p>
 
                 <table id="phd-table" style="width:100%;border-collapse:collapse;margin-top:10px;">
                   <thead>
-                    <tr style="border-bottom:2px solid #333;text-align:left;">
+                    <tr style="border-bottom:2px solid #333;text-align:left;background:#f0f6fc;">
                       <th style="padding:6px 8px;cursor:pointer;user-select:none;" onclick="sortTable(0)">Institution <span id="sort-icon-0">↕</span></th>
                       <th style="padding:6px 8px;cursor:pointer;user-select:none;" onclick="sortTable(1)">State <span id="sort-icon-1">↕</span></th>
                     </tr>
@@ -121,17 +209,13 @@
                   <tbody>
           <tr><td>Arizona State University</td><td>AZ</td></tr>
           <tr><td>Auburn University</td><td>AL</td></tr>
-          <tr><td>Baylor University</td><td>TX</td></tr>
-          <tr><td>Binghamton University</td><td>NY</td></tr>
           <tr><td>Boston University</td><td>MA</td></tr>
           <tr><td>Brandeis University</td><td>MA</td></tr>
-          <tr><td>Brigham Young University</td><td>UT</td></tr>
           <tr><td>Brown University</td><td>RI</td></tr>
           <tr><td>CUNY Graduate Center</td><td>NY</td></tr>
           <tr><td>California Institute of Technology</td><td>CA</td></tr>
           <tr><td>Carnegie Mellon University</td><td>PA</td></tr>
           <tr><td>Case Western Reserve University</td><td>OH</td></tr>
-          <tr><td>Clemson University</td><td>SC</td></tr>
           <tr><td>Colorado School of Mines</td><td>CO</td></tr>
           <tr><td>Colorado State University</td><td>CO</td></tr>
           <tr><td>Columbia University</td><td>NY</td></tr>
@@ -140,64 +224,41 @@
           <tr><td>Drexel University</td><td>PA</td></tr>
           <tr><td>Duke University</td><td>NC</td></tr>
           <tr><td>Emory University</td><td>GA</td></tr>
-          <tr><td>Florida Atlantic University</td><td>FL</td></tr>
           <tr><td>Florida International University</td><td>FL</td></tr>
           <tr><td>Florida State University</td><td>FL</td></tr>
           <tr><td>George Mason University</td><td>VA</td></tr>
           <tr><td>George Washington University</td><td>DC</td></tr>
           <tr><td>Georgetown University</td><td>DC</td></tr>
           <tr><td>Georgia Institute of Technology</td><td>GA</td></tr>
-          <tr><td>Georgia State University</td><td>GA</td></tr>
           <tr><td>Harvard University</td><td>MA</td></tr>
           <tr><td>IUPUI</td><td>IN</td></tr>
           <tr><td>Indiana University-Bloomington</td><td>IN</td></tr>
           <tr><td>Iowa State University</td><td>IA</td></tr>
           <tr><td>Johns Hopkins University</td><td>MD</td></tr>
-          <tr><td>Kansas State University</td><td>KS</td></tr>
-          <tr><td>Kent State University</td><td>OH</td></tr>
-          <tr><td>Lehigh University</td><td>PA</td></tr>
           <tr><td>Louisiana State University</td><td>LA</td></tr>
           <tr><td>Massachusetts Institute of Technology</td><td>MA</td></tr>
           <tr><td>Michigan State University</td><td>MI</td></tr>
-          <tr><td>Michigan Technological University</td><td>MI</td></tr>
-          <tr><td>Mississippi State University</td><td>MS</td></tr>
-          <tr><td>Missouri University of Science and Technology</td><td>MO</td></tr>
-          <tr><td>Montana State University</td><td>MT</td></tr>
-          <tr><td>New Jersey Institute of Technology</td><td>NJ</td></tr>
-          <tr><td>New Mexico State University</td><td>NM</td></tr>
           <tr><td>New York University</td><td>NY</td></tr>
           <tr><td>North Carolina State University</td><td>NC</td></tr>
-          <tr><td>North Dakota State University</td><td>ND</td></tr>
           <tr><td>Northeastern University</td><td>MA</td></tr>
-          <tr><td>Northern Arizona University</td><td>AZ</td></tr>
           <tr><td>Northwestern University</td><td>IL</td></tr>
-          <tr><td>Nova Southeastern University</td><td>FL</td></tr>
           <tr><td>Ohio State University</td><td>OH</td></tr>
-          <tr><td>Oklahoma State University</td><td>OK</td></tr>
-          <tr><td>Old Dominion University</td><td>VA</td></tr>
           <tr><td>Oregon State University</td><td>OR</td></tr>
           <tr><td>Pennsylvania State University</td><td>PA</td></tr>
           <tr><td>Princeton University</td><td>NJ</td></tr>
           <tr><td>Purdue University</td><td>IN</td></tr>
-          <tr><td>Rensselaer Polytechnic Institute</td><td>NY</td></tr>
           <tr><td>Rice University</td><td>TX</td></tr>
           <tr><td>Rutgers University</td><td>NJ</td></tr>
-          <tr><td>Southern Illinois University-Carbondale</td><td>IL</td></tr>
-          <tr><td>Southern Methodist University</td><td>TX</td></tr>
           <tr><td>Stanford University</td><td>CA</td></tr>
           <tr><td>Stony Brook University</td><td>NY</td></tr>
           <tr><td>Syracuse University</td><td>NY</td></tr>
           <tr><td>Temple University</td><td>PA</td></tr>
           <tr><td>Texas A&amp;M University</td><td>TX</td></tr>
-          <tr><td>Texas Tech University</td><td>TX</td></tr>
-          <tr><td>The University of Alabama</td><td>AL</td></tr>
           <tr><td>Tufts University</td><td>MA</td></tr>
           <tr><td>Tulane University</td><td>LA</td></tr>
-          <tr><td>University at Albany</td><td>NY</td></tr>
           <tr><td>University at Buffalo</td><td>NY</td></tr>
           <tr><td>University of Alabama at Birmingham</td><td>AL</td></tr>
           <tr><td>University of Arizona</td><td>AZ</td></tr>
-          <tr><td>University of Arkansas</td><td>AR</td></tr>
           <tr><td>University of California, Berkeley</td><td>CA</td></tr>
           <tr><td>University of California, Davis</td><td>CA</td></tr>
           <tr><td>University of California, Irvine</td><td>CA</td></tr>
@@ -214,72 +275,45 @@
           <tr><td>University of Colorado Denver</td><td>CO</td></tr>
           <tr><td>University of Connecticut</td><td>CT</td></tr>
           <tr><td>University of Delaware</td><td>DE</td></tr>
-          <tr><td>University of Denver</td><td>CO</td></tr>
           <tr><td>University of Florida</td><td>FL</td></tr>
           <tr><td>University of Georgia</td><td>GA</td></tr>
           <tr><td>University of Hawaii at Manoa</td><td>HI</td></tr>
           <tr><td>University of Houston</td><td>TX</td></tr>
-          <tr><td>University of Idaho</td><td>ID</td></tr>
           <tr><td>University of Illinois Chicago</td><td>IL</td></tr>
           <tr><td>University of Illinois Urbana-Champaign</td><td>IL</td></tr>
           <tr><td>University of Iowa</td><td>IA</td></tr>
           <tr><td>University of Kansas</td><td>KS</td></tr>
           <tr><td>University of Kentucky</td><td>KY</td></tr>
-          <tr><td>University of Louisiana at Lafayette</td><td>LA</td></tr>
-          <tr><td>University of Louisville</td><td>KY</td></tr>
-          <tr><td>University of Maine</td><td>ME</td></tr>
-          <tr><td>University of Maryland, Baltimore County</td><td>MD</td></tr>
           <tr><td>University of Maryland, College Park</td><td>MD</td></tr>
           <tr><td>University of Massachusetts, Amherst</td><td>MA</td></tr>
-          <tr><td>University of Massachusetts, Boston</td><td>MA</td></tr>
-          <tr><td>University of Massachusetts, Lowell</td><td>MA</td></tr>
-          <tr><td>University of Memphis</td><td>TN</td></tr>
           <tr><td>University of Miami</td><td>FL</td></tr>
           <tr><td>University of Michigan</td><td>MI</td></tr>
           <tr><td>University of Minnesota</td><td>MN</td></tr>
           <tr><td>University of Missouri</td><td>MO</td></tr>
           <tr><td>University of Nebraska</td><td>NE</td></tr>
-          <tr><td>University of Nevada, Las Vegas</td><td>NV</td></tr>
-          <tr><td>University of Nevada, Reno</td><td>NV</td></tr>
-          <tr><td>University of New Hampshire</td><td>NH</td></tr>
-          <tr><td>University of New Mexico</td><td>NM</td></tr>
           <tr><td>University of North Carolina at Chapel Hill</td><td>NC</td></tr>
-          <tr><td>University of North Carolina at Charlotte</td><td>NC</td></tr>
-          <tr><td>University of North Texas</td><td>TX</td></tr>
           <tr><td>University of Notre Dame</td><td>IN</td></tr>
           <tr><td>University of Oklahoma</td><td>OK</td></tr>
           <tr><td>University of Oregon</td><td>OR</td></tr>
           <tr><td>University of Pennsylvania</td><td>PA</td></tr>
           <tr><td>University of Pittsburgh</td><td>PA</td></tr>
-          <tr><td>University of Rhode Island</td><td>RI</td></tr>
           <tr><td>University of Rochester</td><td>NY</td></tr>
           <tr><td>University of South Carolina</td><td>SC</td></tr>
           <tr><td>University of South Florida</td><td>FL</td></tr>
           <tr><td>University of Southern California</td><td>CA</td></tr>
-          <tr><td>University of Southern Mississippi</td><td>MS</td></tr>
           <tr><td>University of Tennessee</td><td>TN</td></tr>
-          <tr><td>University of Texas at Arlington</td><td>TX</td></tr>
           <tr><td>University of Texas at Austin</td><td>TX</td></tr>
           <tr><td>University of Texas at Dallas</td><td>TX</td></tr>
-          <tr><td>University of Texas at El Paso</td><td>TX</td></tr>
           <tr><td>University of Texas at San Antonio</td><td>TX</td></tr>
           <tr><td>University of Utah</td><td>UT</td></tr>
-          <tr><td>University of Vermont</td><td>VT</td></tr>
           <tr><td>University of Virginia</td><td>VA</td></tr>
           <tr><td>University of Washington</td><td>WA</td></tr>
           <tr><td>University of Wisconsin, Madison</td><td>WI</td></tr>
-          <tr><td>University of Wisconsin, Milwaukee</td><td>WI</td></tr>
-          <tr><td>University of Wyoming</td><td>WY</td></tr>
-          <tr><td>Utah State University</td><td>UT</td></tr>
           <tr><td>Vanderbilt University</td><td>TN</td></tr>
           <tr><td>Virginia Commonwealth University</td><td>VA</td></tr>
           <tr><td>Virginia Tech</td><td>VA</td></tr>
           <tr><td>Washington State University</td><td>WA</td></tr>
           <tr><td>Washington University in St. Louis</td><td>MO</td></tr>
-          <tr><td>Wayne State University</td><td>MI</td></tr>
-          <tr><td>West Virginia University</td><td>WV</td></tr>
-          <tr><td>William &amp; Mary</td><td>VA</td></tr>
-          <tr><td>Worcester Polytechnic Institute</td><td>MA</td></tr>
           <tr><td>Yale University</td><td>CT</td></tr>
                   </tbody>
                 </table>
@@ -337,19 +371,25 @@
                   A few schools came up during methodology checks that aren't on the list, for reasons worth
                   knowing about rather than treating as settled:
                 </p>
-                <ul>
-                  <li><strong>Boston College</strong> and <strong>University of Missouri-Kansas City</strong> both
-                    have real PhD programs that are simply too new to show up in the 2021-2023 completions data
-                    used here (Boston College's first cohort starts Fall 2026; UMKC's standalone CS PhD launched
-                    around 2025, replacing an older interdisciplinary track). Worth a look if you want a program's
-                    earliest cohorts.</li>
-                  <li><strong>Ohio University</strong> has a PhD, but it's a fused "Electrical Engineering and
-                    Computer Science" degree reported under Electrical Engineering's CIP code, which isn't included
-                    here to avoid also pulling in unrelated EE-only programs at other schools.</li>
-                  <li><strong>University of Mississippi</strong> advertises a CS track within an "Engineering
-                    Science" doctorate, but shows zero doctorates under any CS or computer-engineering CIP code
-                    across 2021-2023, so its output couldn't be confirmed.</li>
-                </ul>
+                <div class="note-box">
+                  <ul style="margin:0;padding-left:20px;">
+                    <li><strong>University of Arkansas</strong> clears the first three criteria only through a
+                      documented manual exception: its CS/CE PhD track is real but reported under a generic
+                      "Engineering, General" degree that IPEDS doesn't separate by field. It still misses the
+                      final list because it falls outside the global top 500 in ARWU, THE, and QS alike.</li>
+                    <li><strong>Boston College</strong> and <strong>University of Missouri-Kansas City</strong> both
+                      have real PhD programs that are simply too new to show up in the 2021-2023 completions data
+                      used here (Boston College's first cohort starts Fall 2026; UMKC's standalone CS PhD launched
+                      around 2025, replacing an older interdisciplinary track). Worth a look if you want a program's
+                      earliest cohorts.</li>
+                    <li><strong>Ohio University</strong> has a PhD, but it's a fused "Electrical Engineering and
+                      Computer Science" degree reported under Electrical Engineering's CIP code, which isn't included
+                      here to avoid also pulling in unrelated EE-only programs at other schools.</li>
+                    <li><strong>University of Mississippi</strong> advertises a CS track within an "Engineering
+                      Science" doctorate, but shows zero doctorates under any CS or computer-engineering CIP code
+                      across 2021-2023, so its output couldn't be confirmed.</li>
+                  </ul>
+                </div>
 
                 <p style="text-align:right;font-size:small;padding-top:10px;">
                   <a href="index.html">&larr; Back to homepage</a>

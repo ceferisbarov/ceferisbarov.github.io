@@ -25,7 +25,6 @@
       .tag-r1 { background: #1772d0; }
       .tag-csr { background: #7e57c2; }
       .tag-ipeds { background: #26a69a; }
-      .tag-rank { background: #f09228; }
 
       .count-box {
         display: inline-block;
@@ -53,24 +52,6 @@
       .callout p {
         margin: 8px 0;
       }
-
-      .chip-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin: 10px 0 4px 0;
-      }
-      .chip {
-        display: inline-block;
-        padding: 4px 10px;
-        border-radius: 14px;
-        font-size: 12.5px;
-        font-weight: 700;
-        white-space: nowrap;
-      }
-      .chip-arwu { background: #e3f2fd; color: #0d47a1; }
-      .chip-the { background: #fff3e0; color: #c1440e; }
-      .chip-qs { background: #e8f5e9; color: #1b5e20; }
 
       .note-box {
         background: #f7f7f7;
@@ -100,53 +81,53 @@
                   A broad candidate list of US universities worth considering for a Computer Science PhD.
                   It is <em>not</em> a ranking of these programs against each other. It's a wide net that
                   candidates can narrow down based on their own research interests, advisor fit, and funding
-                  needs. An institution is included if it satisfies all four of the following:
+                  needs. An institution is included if it satisfies all three of the following:
                 </p>
                 <ul>
                   <li><span class="criteria-tag tag-r1">R1</span>Classified <strong>Research 1</strong> ("Very High Spending and Doctorate Production") in the
                     <a href="https://carnegieclassifications.acenet.edu/">2025 Carnegie Classification</a> of
                     Institutions of Higher Education.</li>
-                  <li><span class="criteria-tag tag-csr">CSRankings</span>Tracked by <a href="https://csrankings.org/">CSRankings</a> as a US computer science
-                    department.</li>
+                  <li><span class="criteria-tag tag-csr">CSRankings</span>Ranked in the <strong>top 100 US departments</strong> by
+                    <a href="https://csrankings.org/">CSRankings</a>. See the box below for how that is measured,
+                    and why it replaced a general university ranking.</li>
                   <li><span class="criteria-tag tag-ipeds">IPEDS</span>Conferred at least one CS-related research doctorate between 2021 and 2023, per
                     <a href="https://educationdata.urban.org/documentation/">IPEDS completions data</a>,
                     counting IPEDS CIP&nbsp;11 (Computer &amp; Information Sciences) and CIP&nbsp;14.09
                     (Computer Engineering), since some "Computer Science and Engineering" departments report their
                     doctorate under the latter.</li>
-                  <li><span class="criteria-tag tag-rank">Top 500</span>Ranked in the global <strong>top 500</strong> by at least one of three major world
-                    university rankings. See the box below for which ones, and why we added this.</li>
                 </ul>
                 <p>
-                  <span class="count-box"><strong>108</strong>&nbsp;institutions meet all four criteria.</span>
+                  <span class="count-box"><strong>97</strong>&nbsp;institutions meet all three criteria.</span>
                   The full methodology, data, and code are on
                   <a href="https://github.com/ceferisbarov/phd-list-us">GitHub</a>.
                 </p>
 
                 <div class="callout">
-                  <h3>Why we also require a global ranking</h3>
+                  <h3>Why the ranking criterion is CSRankings, not a world university ranking</h3>
                   <p>
-                    Research 1 status and a working CS PhD program show that a university does research and
-                    trains doctoral students. They don't show that its name still carries weight once a graduate
-                    leaves the department. Advisor reputation and subfield fit matter most for the day to day of
-                    a PhD, but the parent institution's overall standing keeps shaping first impressions long
-                    after graduation. Hiring committees outside computer science, industry recruiters skimming a
-                    resume, and immigration officers evaluating a degree rarely have time to look into a specific
-                    department, so they read the university's name as a stand-in for quality. A ranking floor
-                    keeps this list focused on programs backed by a name that keeps doing that work for its
-                    graduates.
+                    <a href="https://csrankings.org/">CSRankings</a> ranks departments by how much their faculty
+                    publish in the top venues of each computer science area. It counts papers rather than
+                    collecting reputation surveys, and it splits credit for a paper among its authors, so a
+                    department cannot rise on the strength of one prolific collaborator. The numbers here use
+                    the site's own defaults: all 27 areas, top-tier venues only, publications from 2016 to 2026,
+                    combined as a geometric mean across areas.
                   </p>
                   <p>
-                    An institution qualifies if it lands in the global top 500 of at least one of these three
-                    rankings. We used the latest edition available for each as of August 2026:
+                    Earlier versions of this list used a different ranking floor: the global top 500 of ARWU,
+                    THE, or QS. Those rankings measure the university, not the department, and they weight
+                    medical research, prize winners, and reputation surveys, none of which say much about
+                    computer science. In practice that floor excluded departments like Rensselaer, Worcester
+                    Polytechnic, Maryland Baltimore County, and William &amp; Mary, all of which sit inside the
+                    CS top 100, while admitting schools ranked past 150 in CS on the strength of the parent
+                    university's name. Carnegie R1 status already establishes that an institution is a serious
+                    research university, so the second criterion is better spent on computer science itself.
                   </p>
-                  <div class="chip-row">
-                    <span class="chip chip-arwu">ARWU (Shanghai Ranking) 2026</span>
-                    <span class="chip chip-the">THE World University Rankings 2026</span>
-                    <span class="chip chip-qs">QS World University Rankings 2027</span>
-                  </div>
                   <p style="font-size:13px;color:#555555;margin-top:10px;">
-                    QS publishes its rankings roughly a year ahead of ARWU and THE, so its 2027 edition, not
-                    2026, is the one currently live.
+                    One caveat when reading any overall CS rank: it averages a department across all 27 areas,
+                    which says little about the two or three people who would actually advise you. Depth varies
+                    enormously by area. Every school here has at least three faculty publishing in machine
+                    learning, while roughly half have fewer than three publishing in theory. Check your own
+                    area on CSRankings before ruling a department in or out.
                   </p>
                 </div>
 
@@ -158,7 +139,6 @@
                   <select id="state-filter" onchange="filterTable()"
                     style="padding:8px;font-family:'Lato', Verdana, Helvetica, sans-serif;font-size:14px;border:1px solid #ccc;border-radius:4px;">
                     <option value="">All states</option>
-                    <option value="AL">AL</option>
                     <option value="AZ">AZ</option>
                     <option value="CA">CA</option>
                     <option value="CO">CO</option>
@@ -167,12 +147,9 @@
                     <option value="DE">DE</option>
                     <option value="FL">FL</option>
                     <option value="GA">GA</option>
-                    <option value="HI">HI</option>
                     <option value="IA">IA</option>
                     <option value="IL">IL</option>
                     <option value="IN">IN</option>
-                    <option value="KS">KS</option>
-                    <option value="KY">KY</option>
                     <option value="LA">LA</option>
                     <option value="MA">MA</option>
                     <option value="MD">MD</option>
@@ -180,12 +157,10 @@
                     <option value="MN">MN</option>
                     <option value="MO">MO</option>
                     <option value="NC">NC</option>
-                    <option value="NE">NE</option>
                     <option value="NH">NH</option>
                     <option value="NJ">NJ</option>
                     <option value="NY">NY</option>
                     <option value="OH">OH</option>
-                    <option value="OK">OK</option>
                     <option value="OR">OR</option>
                     <option value="PA">PA</option>
                     <option value="RI">RI</option>
@@ -208,18 +183,15 @@
                   </thead>
                   <tbody>
           <tr><td>Arizona State University</td><td>AZ</td></tr>
-          <tr><td>Auburn University</td><td>AL</td></tr>
+          <tr><td>Binghamton University</td><td>NY</td></tr>
           <tr><td>Boston University</td><td>MA</td></tr>
-          <tr><td>Brandeis University</td><td>MA</td></tr>
           <tr><td>Brown University</td><td>RI</td></tr>
-          <tr><td>CUNY Graduate Center</td><td>NY</td></tr>
           <tr><td>California Institute of Technology</td><td>CA</td></tr>
           <tr><td>Carnegie Mellon University</td><td>PA</td></tr>
-          <tr><td>Case Western Reserve University</td><td>OH</td></tr>
-          <tr><td>Colorado School of Mines</td><td>CO</td></tr>
-          <tr><td>Colorado State University</td><td>CO</td></tr>
+          <tr><td>Clemson University</td><td>SC</td></tr>
           <tr><td>Columbia University</td><td>NY</td></tr>
           <tr><td>Cornell University</td><td>NY</td></tr>
+          <tr><td>CUNY Graduate Center</td><td>NY</td></tr>
           <tr><td>Dartmouth College</td><td>NH</td></tr>
           <tr><td>Drexel University</td><td>PA</td></tr>
           <tr><td>Duke University</td><td>NC</td></tr>
@@ -231,13 +203,12 @@
           <tr><td>Georgetown University</td><td>DC</td></tr>
           <tr><td>Georgia Institute of Technology</td><td>GA</td></tr>
           <tr><td>Harvard University</td><td>MA</td></tr>
-          <tr><td>IUPUI</td><td>IN</td></tr>
           <tr><td>Indiana University-Bloomington</td><td>IN</td></tr>
           <tr><td>Iowa State University</td><td>IA</td></tr>
           <tr><td>Johns Hopkins University</td><td>MD</td></tr>
-          <tr><td>Louisiana State University</td><td>LA</td></tr>
           <tr><td>Massachusetts Institute of Technology</td><td>MA</td></tr>
           <tr><td>Michigan State University</td><td>MI</td></tr>
+          <tr><td>New Jersey Institute of Technology</td><td>NJ</td></tr>
           <tr><td>New York University</td><td>NY</td></tr>
           <tr><td>North Carolina State University</td><td>NC</td></tr>
           <tr><td>Northeastern University</td><td>MA</td></tr>
@@ -247,17 +218,16 @@
           <tr><td>Pennsylvania State University</td><td>PA</td></tr>
           <tr><td>Princeton University</td><td>NJ</td></tr>
           <tr><td>Purdue University</td><td>IN</td></tr>
+          <tr><td>Rensselaer Polytechnic Institute</td><td>NY</td></tr>
           <tr><td>Rice University</td><td>TX</td></tr>
           <tr><td>Rutgers University</td><td>NJ</td></tr>
           <tr><td>Stanford University</td><td>CA</td></tr>
           <tr><td>Stony Brook University</td><td>NY</td></tr>
-          <tr><td>Syracuse University</td><td>NY</td></tr>
           <tr><td>Temple University</td><td>PA</td></tr>
           <tr><td>Texas A&amp;M University</td><td>TX</td></tr>
           <tr><td>Tufts University</td><td>MA</td></tr>
           <tr><td>Tulane University</td><td>LA</td></tr>
           <tr><td>University at Buffalo</td><td>NY</td></tr>
-          <tr><td>University of Alabama at Birmingham</td><td>AL</td></tr>
           <tr><td>University of Arizona</td><td>AZ</td></tr>
           <tr><td>University of California, Berkeley</td><td>CA</td></tr>
           <tr><td>University of California, Davis</td><td>CA</td></tr>
@@ -270,50 +240,44 @@
           <tr><td>University of California, Santa Cruz</td><td>CA</td></tr>
           <tr><td>University of Central Florida</td><td>FL</td></tr>
           <tr><td>University of Chicago</td><td>IL</td></tr>
-          <tr><td>University of Cincinnati</td><td>OH</td></tr>
           <tr><td>University of Colorado Boulder</td><td>CO</td></tr>
-          <tr><td>University of Colorado Denver</td><td>CO</td></tr>
           <tr><td>University of Connecticut</td><td>CT</td></tr>
           <tr><td>University of Delaware</td><td>DE</td></tr>
           <tr><td>University of Florida</td><td>FL</td></tr>
           <tr><td>University of Georgia</td><td>GA</td></tr>
-          <tr><td>University of Hawaii at Manoa</td><td>HI</td></tr>
-          <tr><td>University of Houston</td><td>TX</td></tr>
           <tr><td>University of Illinois Chicago</td><td>IL</td></tr>
           <tr><td>University of Illinois Urbana-Champaign</td><td>IL</td></tr>
-          <tr><td>University of Iowa</td><td>IA</td></tr>
-          <tr><td>University of Kansas</td><td>KS</td></tr>
-          <tr><td>University of Kentucky</td><td>KY</td></tr>
+          <tr><td>University of Maryland, Baltimore County</td><td>MD</td></tr>
           <tr><td>University of Maryland, College Park</td><td>MD</td></tr>
           <tr><td>University of Massachusetts, Amherst</td><td>MA</td></tr>
-          <tr><td>University of Miami</td><td>FL</td></tr>
+          <tr><td>University of Massachusetts, Lowell</td><td>MA</td></tr>
           <tr><td>University of Michigan</td><td>MI</td></tr>
           <tr><td>University of Minnesota</td><td>MN</td></tr>
-          <tr><td>University of Missouri</td><td>MO</td></tr>
-          <tr><td>University of Nebraska</td><td>NE</td></tr>
           <tr><td>University of North Carolina at Chapel Hill</td><td>NC</td></tr>
+          <tr><td>University of North Carolina at Charlotte</td><td>NC</td></tr>
+          <tr><td>University of North Texas</td><td>TX</td></tr>
           <tr><td>University of Notre Dame</td><td>IN</td></tr>
-          <tr><td>University of Oklahoma</td><td>OK</td></tr>
           <tr><td>University of Oregon</td><td>OR</td></tr>
           <tr><td>University of Pennsylvania</td><td>PA</td></tr>
           <tr><td>University of Pittsburgh</td><td>PA</td></tr>
           <tr><td>University of Rochester</td><td>NY</td></tr>
-          <tr><td>University of South Carolina</td><td>SC</td></tr>
           <tr><td>University of South Florida</td><td>FL</td></tr>
           <tr><td>University of Southern California</td><td>CA</td></tr>
           <tr><td>University of Tennessee</td><td>TN</td></tr>
+          <tr><td>University of Texas at Arlington</td><td>TX</td></tr>
           <tr><td>University of Texas at Austin</td><td>TX</td></tr>
           <tr><td>University of Texas at Dallas</td><td>TX</td></tr>
-          <tr><td>University of Texas at San Antonio</td><td>TX</td></tr>
           <tr><td>University of Utah</td><td>UT</td></tr>
           <tr><td>University of Virginia</td><td>VA</td></tr>
           <tr><td>University of Washington</td><td>WA</td></tr>
           <tr><td>University of Wisconsin, Madison</td><td>WI</td></tr>
           <tr><td>Vanderbilt University</td><td>TN</td></tr>
-          <tr><td>Virginia Commonwealth University</td><td>VA</td></tr>
           <tr><td>Virginia Tech</td><td>VA</td></tr>
           <tr><td>Washington State University</td><td>WA</td></tr>
           <tr><td>Washington University in St. Louis</td><td>MO</td></tr>
+          <tr><td>Wayne State University</td><td>MI</td></tr>
+          <tr><td>William &amp; Mary</td><td>VA</td></tr>
+          <tr><td>Worcester Polytechnic Institute</td><td>MA</td></tr>
           <tr><td>Yale University</td><td>CT</td></tr>
                   </tbody>
                 </table>
@@ -369,14 +333,17 @@
                 <hr>
                 <p>
                   A few schools came up during methodology checks that aren't on the list, for reasons worth
-                  knowing about rather than treating as settled:
+                  knowing about rather than treating as settled. Beyond these, the most common reason a
+                  well-known university is missing is simply that its CS department falls outside the US top 100,
+                  which the CSRankings criterion treats the same whether the university is famous or not:
                 </p>
                 <div class="note-box">
                   <ul style="margin:0;padding-left:20px;">
                     <li><strong>University of Arkansas</strong> clears the first three criteria only through a
                       documented manual exception: its CS/CE PhD track is real but reported under a generic
                       "Engineering, General" degree that IPEDS doesn't separate by field. It still misses the
-                      final list because it falls outside the global top 500 in ARWU, THE, and QS alike.</li>
+                      final list because it sits at roughly 135th among US departments in CSRankings, outside
+                      the top 100.</li>
                     <li><strong>Boston College</strong> and <strong>University of Missouri-Kansas City</strong> both
                       have real PhD programs that are simply too new to show up in the 2021-2023 completions data
                       used here (Boston College's first cohort starts Fall 2026; UMKC's standalone CS PhD launched

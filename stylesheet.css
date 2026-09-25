@@ -133,3 +133,37 @@ h2 {
 span.highlight {
   background-color: #ffffd0;
 }
+
+.featured-publication td {
+  background: #fffdf2;
+}
+
+.featured-publication td:first-child {
+  border-left: 3px solid #e9b949;
+}
+
+.venue-badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.venue-neurips {
+  color: #6d4d00;
+  background: #fff0b8;
+}
+
+.venue-acl {
+  color: #064f62;
+  background: #cceef2;
+}
+
+.acceptance-note {
+  margin-bottom: 0;
+  color: #555;
+  font-size: 13px;
+}

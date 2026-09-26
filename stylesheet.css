@@ -162,6 +162,11 @@ span.highlight {
   background: #cceef2;
 }
 
+.venue-sigturk {
+  color: #543d78;
+  background: #eee5f7;
+}
+
 .publication-links {
   display: flex;
   flex-wrap: wrap;

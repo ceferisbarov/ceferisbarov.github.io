@@ -162,6 +162,34 @@ span.highlight {
   background: #cceef2;
 }
 
+.publication-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.publication-links .resource-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border: 1px solid #b9d3ec;
+  border-radius: 5px;
+  background: #f5f9fd;
+  color: #155a9d;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.publication-links .resource-link:hover,
+.publication-links .resource-link:focus-visible {
+  border-color: #1772d0;
+  background: #e8f2fc;
+  color: #0e4c88;
+}
+
 .acceptance-note {
   margin-bottom: 0;
   color: #555;

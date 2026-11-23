@@ -962,7 +962,7 @@ let syncInFlight = false;
 let pendingSyncSession = null;
 let adminOpen = false;
 let adminTab = 'sessions';
-let adminData = { users: [], sessions: [] };
+let adminData = { users: [], sessions: [], modelReviews: null };
 let inspecting = null;
 
 function activeStoragePrefix() {
@@ -2479,12 +2479,60 @@ $('import-file').onchange = async () => {
 };
 
 // Admin Panel
+async function loadAdminModelReviews() {
+  try {
+    const resp = await supaFetch(
+      `/storage/v1/object/authenticated/${encodeURIComponent(supaConfig.bucket)}/admin/datasets/${encodeURIComponent(data.dataset_sha256)}/model-reviews.json`
+    );
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch {
+    return null;
+  }
+}
+
 async function loadAdminData() {
-  const [users, allSessions] = await Promise.all([
+  const [users, allSessions, modelReviews] = await Promise.all([
     supaJson('/rest/v1/rpc/admin_list_users', { method: 'POST', body: '{}' }),
-    supaJson(`/rest/v1/review_sessions?dataset_sha256=eq.${encodeURIComponent(data.dataset_sha256)}&select=id,user_id,dataset_sha256,reviewer,payload,created_at,updated_at&order=updated_at.desc`)
+    supaJson(`/rest/v1/review_sessions?dataset_sha256=eq.${encodeURIComponent(data.dataset_sha256)}&select=id,user_id,dataset_sha256,reviewer,payload,created_at,updated_at&order=updated_at.desc`),
+    loadAdminModelReviews()
   ]);
-  adminData = { users: users || [], sessions: allSessions || [] };
+  const v2Sessions = (allSessions || []).filter(r => [2, 3].includes(r.payload?.schema_version));
+  adminData = { users: users || [], sessions: v2Sessions, modelReviews: modelReviews || null };
+}
+
+function getModelReview(modelId, fid) {
+  return adminData.modelReviews?.models?.[modelId]?.families?.[fid] || null;
+}
+
+function formatModelRatingsShort(entry) {
+  if (!entry?.ratings) return '';
+  return ['realism', 'privacy', 'ambiguity', 'media']
+    .map(q => `${q[0].toUpperCase()}:${entry.ratings[q] || '—'}`)
+    .join(' ');
+}
+
+function renderModelLabelCell(modelEntry, fid) {
+  if (!modelEntry) return '<span style="color:var(--muted)">—</span>';
+  const m = modelEntry.families?.[fid];
+  if (!m) return '<span style="color:var(--muted)">—</span>';
+  if (m.status !== 'complete') {
+    return `<span class="role-tag disabled">${escape(m.status || 'failed')}</span>`;
+  }
+  const qs = formatModelRatingsShort(m);
+  const flaggedExplanations = ['realism', 'privacy', 'ambiguity', 'media']
+    .filter(q => m.ratings?.[q] && m.ratings[q] !== 'yes' && m.explanations?.[q])
+    .map(q => `<div style="margin-top:4px"><strong>${escape(q)} (${escape(m.ratings[q])}):</strong> ${escape(m.explanations[q])}</div>`)
+    .join('');
+  return `<div>
+    <span class="decision-badge" data-decision="${escape(m.final_label || '')}">${escape(m.final_label || '—')}</span>
+    <div style="margin-top:2px"><small style="color:var(--muted)">${escape(qs)}</small></div>
+    ${m.rationale || flaggedExplanations ? `<details style="margin-top:4px;font-size:11.5px;color:var(--ink-2)">
+      <summary style="cursor:pointer;color:var(--muted)">Rationale</summary>
+      ${m.rationale ? `<div style="margin-top:4px">${escape(m.rationale)}</div>` : ''}
+      ${flaggedExplanations}
+    </details>` : ''}
+  </div>`;
 }
 
 function summarizeSessionRow(row) {
@@ -2512,7 +2560,8 @@ function buildAdminCsv() {
   const headers = [
     'session_id', 'username', 'reviewer_label', 'setting', 'family_id', 'family_num',
     'completed', 'final_label', 'realism', 'privacy', 'ambiguity', 'media',
-    'notes', 'completed_at', 'session_updated_at'
+    'notes', 'completed_at', 'session_updated_at',
+    'carbon_label', 'carbon_ratings', 'argon_label', 'argon_ratings'
   ];
   const lines = [headers.join(',')];
   for (const row of adminData.sessions) {
@@ -2522,6 +2571,8 @@ function buildAdminCsv() {
       const f = familyById.get(fid);
       const r = s.reviews?.[fid] || {};
       const ratings = r.ratings || {};
+      const carbon = getModelReview('gemini-4-carbon', fid);
+      const argon = getModelReview('gemini-4-argon', fid);
       lines.push([
         row.id,
         u?.username || row.reviewer || row.user_id,
@@ -2537,7 +2588,11 @@ function buildAdminCsv() {
         ratings.media || '',
         r.notes || '',
         r.completed_at || '',
-        row.updated_at || ''
+        row.updated_at || '',
+        carbon?.status === 'complete' ? (carbon.final_label || '') : (carbon?.status || ''),
+        carbon?.status === 'complete' ? formatModelRatingsShort(carbon) : '',
+        argon?.status === 'complete' ? (argon.final_label || '') : (argon?.status || ''),
+        argon?.status === 'complete' ? formatModelRatingsShort(argon) : ''
       ].map(csvCell).join(','));
     }
   }
@@ -2593,6 +2648,8 @@ function renderAdminSessionsTab(userById) {
 
 function renderAdminComparisonTab(userById) {
   const mode = $('admin-cmp-filter')?.value || 'all';
+  const carbon = adminData.modelReviews?.models?.['gemini-4-carbon'] || null;
+  const argon = adminData.modelReviews?.models?.['gemini-4-argon'] || null;
   const byFamily = new Map();
   for (const row of adminData.sessions) {
     const u = userById.get(row.user_id);
@@ -2605,23 +2662,52 @@ function renderAdminComparisonTab(userById) {
       byFamily.get(fid).push({ username: uname, sessionId: row.id, review: r });
     }
   }
-  const entries = [...byFamily.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true })).filter(([, items]) => {
-    const labels = new Set(items.map(x => x.review.final_label).filter(Boolean));
-    const hasFixDrop = items.some(x => ['fix', 'drop'].includes(x.review.final_label));
-    if (mode === 'multi') return items.length >= 2;
-    if (mode === 'disagree') return items.length >= 2 && labels.size > 1;
-    if (mode === 'issues') return hasFixDrop;
-    return true;
-  });
+  const allFamilyIds = mode === 'all_families'
+    ? data.families.map(f => f.id)
+    : [...byFamily.keys()];
+  const entries = allFamilyIds
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .map(fid => [fid, byFamily.get(fid) || []])
+    .filter(([fid, items]) => {
+      const humanLabels = new Set(items.map(x => x.review.final_label).filter(Boolean));
+      const cLabel = carbon?.families?.[fid]?.final_label || '';
+      const aLabel = argon?.families?.[fid]?.final_label || '';
+      const hasFixDrop = items.some(x => ['fix', 'drop'].includes(x.review.final_label))
+        || ['fix', 'drop'].includes(cLabel)
+        || ['fix', 'drop'].includes(aLabel);
+      const modelDisagree = humanLabels.size > 0 && (
+        (cLabel && [...humanLabels].some(hl => hl !== cLabel)) ||
+        (aLabel && [...humanLabels].some(hl => hl !== aLabel))
+      );
+      if (mode === 'all_families') return true;
+      if (mode === 'multi') return items.length >= 2;
+      if (mode === 'disagree') return items.length >= 2 && humanLabels.size > 1;
+      if (mode === 'model_disagree') return modelDisagree;
+      if (mode === 'issues') return items.length > 0 && hasFixDrop;
+      return items.length > 0;
+    });
 
   const rowsHtml = entries.map(([fid, items]) => {
     const f = familyById.get(fid);
     const labels = new Set(items.map(x => x.review.final_label).filter(Boolean));
     const disagree = items.length >= 2 && labels.size > 1;
+    const cLabel = carbon?.families?.[fid]?.final_label || '';
+    const aLabel = argon?.families?.[fid]?.final_label || '';
+    const modelDiff = labels.size > 0 && (
+      (cLabel && [...labels].some(hl => hl !== cLabel)) ||
+      (aLabel && [...labels].some(hl => hl !== aLabel))
+    );
+    const statusBadge = disagree
+      ? '<span class="decision-badge" data-decision="fix">Disagreement</span>'
+      : items.length >= 2
+        ? '<span class="decision-badge" data-decision="keep">Agreed</span>'
+        : items.length === 1
+          ? '<span class="role-tag">Single</span>'
+          : '<span class="role-tag disabled">Unreviewed</span>';
     return `<tr class="${disagree ? 'disagree-row' : ''}">
       <td style="white-space:nowrap"><strong>${escape(fid)}</strong><br><small style="color:var(--muted)">${escape(names[f?.setting] || f?.setting || '')}</small></td>
-      <td>${disagree ? '<span class="decision-badge" data-decision="fix">Disagreement</span>' : (items.length >= 2 ? '<span class="decision-badge" data-decision="keep">Agreed</span>' : '<span class="role-tag">Single</span>')}</td>
-      <td>${items.map(it => {
+      <td>${statusBadge}${modelDiff ? '<div style="margin-top:4px"><span class="role-tag">≠ Model</span></div>' : ''}</td>
+      <td>${items.length ? items.map(it => {
         const dec = it.review.final_label || 'draft';
         const qs = data.questions.map(q => `${q.id[0].toUpperCase()}:${it.review.ratings?.[q.id] || '—'}`).join(' ');
         return `<div style="margin-bottom:6px">
@@ -2630,26 +2716,37 @@ function renderAdminComparisonTab(userById) {
           <small style="color:var(--muted)">(${escape(qs)})</small>
           ${it.review.notes ? `<div style="margin-top:2px;color:var(--ink-2)">${escape(it.review.notes)}</div>` : ''}
         </div>`;
-      }).join('')}</td>
+      }).join('') : '<span style="color:var(--muted)">No human review yet</span>'}</td>
+      <td style="min-width:155px">${renderModelLabelCell(carbon, fid)}</td>
+      <td style="min-width:155px">${renderModelLabelCell(argon, fid)}</td>
     </tr>`;
   }).join('');
 
+  const modelMeta = [carbon, argon].filter(Boolean)
+    .map(m => `${m.label} (${m.run_id}): ${m.counts?.keep || 0}K / ${m.counts?.fix || 0}F / ${m.counts?.drop || 0}D${m.counts?.failed ? ` · ${m.counts.failed} failed` : ''}`)
+    .join('  |  ');
+
   return `<div class="card">
     <div class="card-header">
-      <h2>Cross-Reviewer Comparison (${entries.length} families)</h2>
+      <div>
+        <h2>Cross-Reviewer &amp; Model Comparison (${entries.length} families)</h2>
+        ${modelMeta ? `<div style="font-size:11.5px;color:var(--muted);margin-top:2px">${escape(modelMeta)}</div>` : ''}
+      </div>
       <div class="admin-toolbar-group">
         <select id="admin-cmp-filter" style="padding:4px 8px;font-size:12px">
-          <option value="all" ${mode === 'all' ? 'selected' : ''}>All reviewed families</option>
-          <option value="multi" ${mode === 'multi' ? 'selected' : ''}>2+ reviewers</option>
-          <option value="disagree" ${mode === 'disagree' ? 'selected' : ''}>Disagreements only</option>
+          <option value="all" ${mode === 'all' ? 'selected' : ''}>All human-reviewed families</option>
+          <option value="all_families" ${mode === 'all_families' ? 'selected' : ''}>All ${data.families.length} families (incl. unreviewed)</option>
+          <option value="multi" ${mode === 'multi' ? 'selected' : ''}>2+ human reviewers</option>
+          <option value="disagree" ${mode === 'disagree' ? 'selected' : ''}>Human disagreements only</option>
+          <option value="model_disagree" ${mode === 'model_disagree' ? 'selected' : ''}>Human vs Carbon/Argon disagreements</option>
           <option value="issues" ${mode === 'issues' ? 'selected' : ''}>Any Fix or Drop</option>
         </select>
       </div>
     </div>
     <div class="admin-table-wrap">
       <table class="admin-table">
-        <thead><tr><th>Family</th><th>Agreement</th><th>Reviewer Labels &amp; Notes</th></tr></thead>
-        <tbody>${rowsHtml || '<tr><td colspan="3" style="color:var(--muted)">No matching reviewed families yet.</td></tr>'}</tbody>
+        <thead><tr><th>Family</th><th>Agreement</th><th>Human Reviewers</th><th>Carbon</th><th>Argon</th></tr></thead>
+        <tbody>${rowsHtml || '<tr><td colspan="5" style="color:var(--muted)">No matching reviewed families yet.</td></tr>'}</tbody>
       </table>
     </div>
   </div>`;
@@ -2771,6 +2868,7 @@ function renderAdminPanel() {
         exported_at: new Date().toISOString(),
         benchmark_version: data.benchmark_version,
         dataset_sha256: data.dataset_sha256,
+        model_reviews: adminData.modelReviews || null,
         sessions: adminData.sessions.map(r => ({
           ...r.payload,
           _account_username: userById.get(r.user_id)?.username || null,

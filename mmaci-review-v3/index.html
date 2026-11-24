@@ -1045,6 +1045,7 @@ let syncInFlight = false;
 let pendingSyncSession = null;
 let adminOpen = false;
 let adminTab = 'sessions';
+let adminReviewFormat = 'all';
 let adminData = { users: [], sessions: [] };
 let inspecting = null;
 
@@ -2427,8 +2428,42 @@ async function loadAdminData() {
     supaJson(`/rest/v1/review_sessions?dataset_sha256=eq.${encodeURIComponent(data.dataset_sha256)}&select=id,user_id,dataset_sha256,reviewer,payload,created_at,updated_at&order=updated_at.desc`),
     loadAdminModelReviews()
   ]);
-  const v3Sessions = (allSessions || []).filter(r => r.payload?.schema_version === SCHEMA_VERSION);
-  adminData = { users: users || [], sessions: v3Sessions, modelReviews: modelReviews || null };
+  const sessions = (allSessions || []).filter(r => [2, 3, SCHEMA_VERSION].includes(r.payload?.schema_version));
+  adminData = { users: users || [], sessions, modelReviews: modelReviews || null };
+}
+
+function adminSessionRows() {
+  return adminData.sessions.filter(row => adminReviewFormat === 'all'
+    || (adminReviewFormat === 'v3') === (row.payload.schema_version === SCHEMA_VERSION));
+}
+
+function reviewFormat(s) {
+  return s.schema_version === SCHEMA_VERSION ? 'v3 · episode' : 'v2 · family';
+}
+
+function inspectLegacySession(row, username) {
+  const s = row.payload;
+  $('main').innerHTML = `<div class="admin-wrap">
+    <div class="admin-header">
+      <div><h1>Original v2 review · @${escape(username)}</h1>
+        <p>Read-only family reviews with their original questions and answers.</p></div>
+      <button type="button" id="legacy-back" class="sm">Back to Admin Panel</button>
+    </div>
+    ${(s.selected || []).map(fid => {
+      const r = s.reviews?.[fid];
+      return `<section class="card" style="margin-bottom:14px">
+        <div class="card-header"><h2>${escape(fid)}</h2>
+          <span>${r?.completed ? 'Complete' : 'Draft'} · ${escape(r?.final_label || 'No verdict')}</span></div>
+        <div class="card-body">
+          ${(s.questions || []).map(q => `<p><strong>${escape(q.text || q.id)}</strong><br>${escape(r?.ratings?.[q.id] || 'Not answered')}</p>`).join('')}
+          ${r?.initial_notes ? `<p><strong>Initial notes</strong></p><pre style="white-space:pre-wrap">${escape(r.initial_notes)}</pre>` : ''}
+          ${r?.notes ? `<p><strong>Notes</strong></p><pre style="white-space:pre-wrap">${escape(r.notes)}</pre>` : ''}
+          ${r ? `<p>Inspected episodes: ${escape((r.viewed || []).join(', ') || 'None')}</p>` : ''}
+        </div></section>`;
+    }).join('')}
+    <details><summary>Original session JSON</summary>${json(s)}</details>
+  </div>`;
+  $('legacy-back').onclick = () => renderAdminPanel();
 }
 
 function getModelReview(modelId, fid) {
@@ -2488,13 +2523,13 @@ function csvCell(v) {
 function buildAdminCsv() {
   const userById = new Map(adminData.users.map(u => [u.id, u]));
   const headers = [
-    'session_id', 'username', 'reviewer_label', 'setting', 'family_id', 'episode_id',
+    'session_id', 'username', 'reviewer_label', 'schema_version', 'review_format', 'setting', 'family_id', 'episode_id',
     'completed', 'final_label', 'realism', 'resolvable', 'sharing',
-    'notes', 'completed_at', 'session_updated_at',
+    'privacy', 'ambiguity', 'media', 'initial_notes', 'notes', 'completed_at', 'session_updated_at',
     'carbon_label', 'carbon_ratings', 'argon_label', 'argon_ratings'
   ];
   const lines = [headers.join(',')];
-  for (const row of adminData.sessions) {
+  for (const row of adminSessionRows()) {
     const u = userById.get(row.user_id);
     const s = row.payload || {};
     for (const fid of (s.selected || [])) {
@@ -2505,9 +2540,11 @@ function buildAdminCsv() {
       const argon = getModelReview('gemini-4-argon', fid);
       lines.push([
         row.id, u?.username || row.reviewer || row.user_id, s.reviewer || row.reviewer || '',
+        s.schema_version, reviewFormat(s),
         f?.setting || '', fid, r.episode_id || s.selected_episodes?.[fid] || '',
         Boolean(r.completed), r.final_label || '',
         ratings.realism || '', ratings.resolvable || '', ratings.sharing || '',
+        ratings.privacy || '', ratings.ambiguity || '', ratings.media || '', r.initial_notes || '',
         r.notes || '', r.completed_at || '', row.updated_at || '',
         carbon?.status === 'complete' ? (carbon.final_label || '') : (carbon?.status || ''),
         carbon?.status === 'complete' ? formatModelRatingsShort(carbon) : '',
@@ -2521,7 +2558,7 @@ function buildAdminCsv() {
 
 function renderAdminSessionsTab(userById) {
   const filterUser = $('admin-user-filter')?.value || '';
-  const filtered = adminData.sessions.filter(r => !filterUser || r.user_id === filterUser);
+  const filtered = adminSessionRows().filter(r => !filterUser || r.user_id === filterUser);
   const rowsHtml = filtered.map(row => {
     const u = userById.get(row.user_id);
     const st = summarizeSessionRow(row);
@@ -2529,6 +2566,7 @@ function renderAdminSessionsTab(userById) {
     return `<tr>
       <td><strong>@${escape(u?.username || 'unknown')}</strong></td>
       <td>${escape(row.payload?.reviewer || row.reviewer || '—')}</td>
+      <td>${escape(reviewFormat(row.payload))}</td>
       <td><code>${escape(samp.setting || 'all')}</code> · ${escape(samp.mode || '')}<br><small style="color:var(--muted)">seed: ${escape(samp.seed || '')}</small></td>
       <td><strong>${st.done} / ${st.total}</strong></td>
       <td>
@@ -2540,14 +2578,14 @@ function renderAdminSessionsTab(userById) {
       <td style="white-space:nowrap">
         <button type="button" class="sm" data-admin-inspect="${escape(row.id)}">Inspect</button>
         <button type="button" class="sm" data-admin-dl="${escape(row.id)}">JSON</button>
-        <button type="button" class="sm" data-admin-del-sess="${escape(row.id)}" style="color:var(--red)">Delete</button>
+        ${row.payload.schema_version === SCHEMA_VERSION ? `<button type="button" class="sm" data-admin-del-sess="${escape(row.id)}" style="color:var(--red)">Delete</button>` : ''}
       </td>
     </tr>`;
   }).join('');
 
   return `<div class="card">
     <div class="card-header">
-      <h2>v3 Reviewer Sessions (${filtered.length})</h2>
+      <h2>Reviewer Sessions (${filtered.length})</h2>
       <div class="admin-toolbar-group">
         <select id="admin-user-filter" style="padding:4px 8px;font-size:12px">
           <option value="">All reviewers</option>
@@ -2559,8 +2597,8 @@ function renderAdminSessionsTab(userById) {
     </div>
     <div class="admin-table-wrap">
       <table class="admin-table">
-        <thead><tr><th>User</th><th>Label</th><th>Sample</th><th>Done</th><th>Decisions</th><th>Updated</th><th>Actions</th></tr></thead>
-        <tbody>${rowsHtml || '<tr><td colspan="7" style="color:var(--muted)">No v3 sessions saved yet.</td></tr>'}</tbody>
+        <thead><tr><th>User</th><th>Label</th><th>Format</th><th>Sample</th><th>Done</th><th>Decisions</th><th>Updated</th><th>Actions</th></tr></thead>
+        <tbody>${rowsHtml || '<tr><td colspan="8" style="color:var(--muted)">No matching sessions saved yet.</td></tr>'}</tbody>
       </table>
     </div>
   </div>`;
@@ -2571,7 +2609,7 @@ function renderAdminComparisonTab(userById) {
   const carbon = adminData.modelReviews?.models?.['gemini-4-carbon'] || null;
   const argon = adminData.modelReviews?.models?.['gemini-4-argon'] || null;
   const byFamily = new Map();
-  for (const row of adminData.sessions) {
+  for (const row of adminSessionRows()) {
     const u = userById.get(row.user_id);
     const uname = u?.username || row.reviewer || row.user_id.slice(0, 8);
     const s = row.payload || {};
@@ -2579,7 +2617,7 @@ function renderAdminComparisonTab(userById) {
       const r = s.reviews?.[fid];
       if (!r || (!r.completed && !r.final_label && !Object.keys(r.ratings || {}).length)) continue;
       if (!byFamily.has(fid)) byFamily.set(fid, []);
-      byFamily.get(fid).push({ username: uname, epId: r.episode_id || s.selected_episodes?.[fid] || '', review: r });
+      byFamily.get(fid).push({ username: uname, scope: reviewFormat(s), questions: s.questions || [], epId: r.episode_id || s.selected_episodes?.[fid] || '', review: r });
     }
   }
   const allFamilyIds = mode === 'all_families'
@@ -2629,9 +2667,9 @@ function renderAdminComparisonTab(userById) {
       <td>${statusBadge}${modelDiff ? '<div style="margin-top:4px"><span class="role-tag">≠ Model</span></div>' : ''}</td>
       <td>${items.length ? items.map(it => {
         const dec = it.review.final_label || 'draft';
-        const qs = V3_QUESTIONS.map(q => `${q.short}:${it.review.ratings?.[q.id] || '—'}`).join(' · ');
+        const qs = it.questions.map(q => `${q.short || q.id}:${it.review.ratings?.[q.id] || '—'}`).join(' · ');
         return `<div style="margin-bottom:6px">
-          <strong>@${escape(it.username)}</strong> <small>(${escape(it.epId)})</small>
+          <strong>@${escape(it.username)}</strong> <small>(${escape(it.scope)}${it.epId ? ` · ${escape(it.epId)}` : ''})</small>
           <span class="decision-badge" data-decision="${escape(it.review.final_label || '')}">${escape(dec)}</span>
           <small style="color:var(--muted)">${escape(qs)}</small>
           ${it.review.notes ? `<div style="margin-top:2px;color:var(--ink-2)">${escape(it.review.notes)}</div>` : ''}
@@ -2728,7 +2766,7 @@ function renderAdminUsersTab() {
 function renderAdminPanel() {
   const userById = new Map(adminData.users.map(u => [u.id, u]));
   let totalDone = 0, keep = 0, fix = 0, drop = 0;
-  for (const row of adminData.sessions) {
+  for (const row of adminSessionRows()) {
     const st = summarizeSessionRow(row);
     totalDone += st.done; keep += st.keep; fix += st.fix; drop += st.drop;
   }
@@ -2737,9 +2775,16 @@ function renderAdminPanel() {
     <div class="admin-header">
       <div>
         <h1 style="font-size:21px">Admin Panel (v3)</h1>
-        <p style="font-size:12.5px;color:var(--muted)">Manage reviewer accounts, inspect v3 progress, compare labels, and export reviews.</p>
+        <p style="font-size:12.5px;color:var(--muted)">Review v3 episodes and original v2 families. Their questions and review scope differ; original answers are preserved.</p>
       </div>
       <div class="admin-toolbar-group">
+        <label>Review format
+          <select id="admin-review-format">
+            <option value="all" ${adminReviewFormat === 'all' ? 'selected' : ''}>All formats</option>
+            <option value="v3" ${adminReviewFormat === 'v3' ? 'selected' : ''}>v3 · episode reviews</option>
+            <option value="v2" ${adminReviewFormat === 'v2' ? 'selected' : ''}>v2 · family reviews</option>
+          </select>
+        </label>
         <button type="button" id="admin-refresh" class="sm">↻ Refresh</button>
         <button type="button" id="admin-back" class="sm">← Back to Review Desk</button>
       </div>
@@ -2747,8 +2792,8 @@ function renderAdminPanel() {
 
     <div class="kpi-grid">
       <div class="kpi-card"><div class="kpi-label">Provisioned Users</div><div class="kpi-val">${adminData.users.length}</div></div>
-      <div class="kpi-card"><div class="kpi-label">v3 Sessions</div><div class="kpi-val">${adminData.sessions.length}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Completed Cases</div><div class="kpi-val">${totalDone}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Sessions</div><div class="kpi-val">${adminSessionRows().length}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Completed Reviews</div><div class="kpi-val">${totalDone}</div></div>
       <div class="kpi-card"><div class="kpi-label">Keep / Fix / Drop</div><div class="kpi-val">${keep} / ${fix} / ${drop}</div></div>
     </div>
 
@@ -2770,6 +2815,10 @@ function renderAdminPanel() {
   $('admin-refresh').onclick = async () => {
     try { await loadAdminData(); renderAdminPanel(); } catch (e) { message(e.message, true); }
   };
+  $('admin-review-format').onchange = event => {
+    adminReviewFormat = event.target.value;
+    renderAdminPanel();
+  };
   for (const btn of document.querySelectorAll('[data-admin-tab]')) {
     btn.onclick = () => { adminTab = btn.dataset.adminTab; renderAdminPanel(); };
   }
@@ -2779,28 +2828,32 @@ function renderAdminPanel() {
     $('admin-export-json').onclick = () => {
       const payload = {
         exported_at: new Date().toISOString(),
-        schema_version: SCHEMA_VERSION,
+        review_formats: [...new Set(adminSessionRows().map(r => r.payload.schema_version))],
         benchmark_version: data.benchmark_version,
         dataset_sha256: data.dataset_sha256,
         model_reviews: adminData.modelReviews || null,
-        sessions: adminData.sessions.map(r => ({
+        sessions: adminSessionRows().map(r => ({
           ...r.payload,
           _account_username: userById.get(r.user_id)?.username || null,
           _user_id: r.user_id
         }))
       };
-      downloadFile(`mmaci-v3-all-reviews-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2));
+      downloadFile(`mmaci-all-reviews-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2));
     };
   }
   if ($('admin-export-csv')) {
     $('admin-export-csv').onclick = () => {
-      downloadFile(`mmaci-v3-all-reviews-${new Date().toISOString().slice(0, 10)}.csv`, buildAdminCsv(), 'text/csv;charset=utf-8');
+      downloadFile(`mmaci-all-reviews-${new Date().toISOString().slice(0, 10)}.csv`, buildAdminCsv(), 'text/csv;charset=utf-8');
     };
   }
   for (const btn of document.querySelectorAll('[data-admin-inspect]')) {
     btn.onclick = () => {
       const row = adminData.sessions.find(s => s.id === btn.dataset.adminInspect);
       if (!row) return;
+      if (row.payload.schema_version !== SCHEMA_VERSION) {
+        inspectLegacySession(row, userById.get(row.user_id)?.username || row.reviewer || 'reviewer');
+        return;
+      }
       try {
         const s = validateSession(structuredClone(row.payload));
         const u = userById.get(row.user_id);
@@ -2812,7 +2865,7 @@ function renderAdminPanel() {
   for (const btn of document.querySelectorAll('[data-admin-dl]')) {
     btn.onclick = () => {
       const row = adminData.sessions.find(s => s.id === btn.dataset.adminDl);
-      if (row) downloadFile(`mmaci-review-v3-${row.id}.json`, JSON.stringify(row.payload, null, 2));
+      if (row) downloadFile(`mmaci-review-${reviewFormat(row.payload).split(' ')[0]}-${row.id}.json`, JSON.stringify(row.payload, null, 2));
     };
   }
   for (const btn of document.querySelectorAll('[data-admin-del-sess]')) {

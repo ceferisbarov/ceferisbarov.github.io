@@ -193,6 +193,8 @@ progress::-webkit-progress-value { background: var(--accent); transition: width 
 [data-decision=keep] { color: var(--green); background: var(--green-bg); border: 1px solid var(--green-border); }
 [data-decision=fix] { color: var(--amber); background: var(--amber-bg); border: 1px solid var(--amber-border); }
 [data-decision=drop] { color: var(--red); background: var(--red-bg); border: 1px solid var(--red-border); }
+[data-decision=high] { color: var(--red); background: var(--red-bg); border: 1px solid var(--red-border); }
+[data-decision=low] { color: var(--blue); background: var(--blue-bg); border: 1px solid var(--blue-border); }
 
 /* Workspace */
 .workspace {
@@ -963,6 +965,7 @@ const json = value => `<pre class="code">${escape(JSON.stringify(value, null, 2)
 let familyById = new Map((data?.families || []).map(f => [f.id, f]));
 
 const SCHEMA_VERSION = 4;
+const STAKES_SCHEMA_VERSION = 5;
 const storagePrefixBase = 'mmaci-case-review-v4:';
 const authStorageKey = supaConfig ? `mmaci-auth-v2:${supaConfig.url}` : '';
 
@@ -1046,7 +1049,9 @@ let pendingSyncSession = null;
 let adminOpen = false;
 let adminTab = 'sessions';
 let adminReviewFormat = 'all';
-let adminData = { users: [], sessions: [] };
+let adminData = { users: [], sessions: [], stakesSessions: [], stakesConfig: null };
+let stakesDraft = null;
+let stakesCmpFilter = 'cohort';
 let inspecting = null;
 
 function activeStoragePrefix() {
@@ -2422,14 +2427,64 @@ async function loadAdminModelReviews() {
   }
 }
 
+function stakesConfigKey() {
+  return `stakes:${data.dataset_sha256}`;
+}
+
+function computeCohortId(selected) {
+  const canonical = [...new Set(selected || [])].sort().join('\n');
+  let h1 = 0x811c9dc5, h2 = 0x9e3779b9;
+  for (let i = 0; i < canonical.length; i++) {
+    const c = canonical.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 16777619);
+    h2 = Math.imul(h2 ^ (c + i), 2246822519);
+  }
+  return ((h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0'));
+}
+
+async function loadAdminStakesConfig() {
+  try {
+    const rows = await supaJson(
+      `/rest/v1/review_configs?key=eq.${encodeURIComponent(stakesConfigKey())}&select=key,dataset_sha256,payload,updated_at`
+    );
+    return rows?.[0] || null;
+  } catch {
+    return null;
+  }
+}
+
 async function loadAdminData() {
-  const [users, allSessions, modelReviews] = await Promise.all([
+  const [users, allSessions, modelReviews, stakesConfigRow] = await Promise.all([
     supaJson('/rest/v1/rpc/admin_list_users', { method: 'POST', body: '{}' }),
     supaJson(`/rest/v1/review_sessions?dataset_sha256=eq.${encodeURIComponent(data.dataset_sha256)}&select=id,user_id,dataset_sha256,reviewer,payload,created_at,updated_at&order=updated_at.desc`),
-    loadAdminModelReviews()
+    loadAdminModelReviews(),
+    loadAdminStakesConfig()
   ]);
   const sessions = (allSessions || []).filter(r => [2, 3, SCHEMA_VERSION].includes(r.payload?.schema_version));
-  adminData = { users: users || [], sessions, modelReviews: modelReviews || null };
+  const stakesSessions = (allSessions || []).filter(
+    r => r.payload?.schema_version === STAKES_SCHEMA_VERSION && r.payload?.task_type === 'stakes'
+  );
+  adminData = {
+    users: users || [],
+    sessions,
+    stakesSessions,
+    modelReviews: modelReviews || null,
+    stakesConfig: stakesConfigRow?.payload || null,
+    stakesConfigUpdatedAt: stakesConfigRow?.updated_at || null
+  };
+  const cfg = adminData.stakesConfig;
+  if (!stakesDraft || stakesDraft._dataset !== data.dataset_sha256) {
+    stakesDraft = {
+      _dataset: data.dataset_sha256,
+      selected: [...(cfg?.selected || [])],
+      count: cfg?.count || 40,
+      seed: cfg?.seed || `${new Date().toISOString().slice(0, 10)}-stakes-40`,
+      mode: cfg?.mode || 'balanced',
+      shuffle_per_reviewer: cfg?.shuffle_per_reviewer !== undefined ? Boolean(cfg.shuffle_per_reviewer) : true,
+      locked: Boolean(cfg?.locked),
+      notes: cfg?.notes || ''
+    };
+  }
 }
 
 function adminSessionRows() {
@@ -2710,6 +2765,327 @@ function renderAdminComparisonTab(userById) {
   </div>`;
 }
 
+function summarizeStakesSessionRow(row) {
+  const s = row.payload || {};
+  const selected = s.selected || [];
+  const reviews = s.reviews || {};
+  let done = 0, high = 0, low = 0;
+  for (const id of selected) {
+    const r = reviews[id];
+    if (r?.completed) done++;
+    if (r?.stakes_label === 'high') high++;
+    else if (r?.stakes_label === 'low') low++;
+  }
+  return { total: selected.length, done, high, low };
+}
+
+function buildStakesCsv(userById) {
+  const headers = [
+    'session_id', 'username', 'reviewer_label', 'cohort_id', 'setting', 'family_id',
+    'completed', 'stakes_label', 'notes', 'completed_at', 'session_updated_at'
+  ];
+  const lines = [headers.join(',')];
+  for (const row of (adminData.stakesSessions || [])) {
+    const u = userById.get(row.user_id);
+    const s = row.payload || {};
+    for (const fid of (s.selected || [])) {
+      const f = familyById.get(fid);
+      const r = s.reviews?.[fid] || {};
+      lines.push([
+        row.id, u?.username || row.reviewer || row.user_id, s.reviewer || row.reviewer || '',
+        s.cohort_id || '', f?.setting || '', fid,
+        Boolean(r.completed), r.stakes_label || '', r.notes || '',
+        r.completed_at || '', row.updated_at || ''
+      ].map(csvCell).join(','));
+    }
+  }
+  return lines.join('\n');
+}
+
+function inspectStakesSession(row, username) {
+  const s = row.payload || {};
+  $('main').innerHTML = `<div class="admin-wrap">
+    <div class="admin-header">
+      <div>
+        <h1>Stakes Annotation · @${escape(username)}</h1>
+        <p style="font-size:12.5px;color:var(--muted)">Read-only stakes annotations · Cohort <code>${escape(s.cohort_id || 'custom')}</code></p>
+      </div>
+      <button type="button" id="stakes-inspect-back" class="sm">← Back to Admin Panel</button>
+    </div>
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>#</th><th>Family</th><th>Setting</th><th>Label</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody>
+          ${(s.selected || []).map((fid, idx) => {
+            const f = familyById.get(fid);
+            const r = s.reviews?.[fid] || {};
+            return `<tr>
+              <td>${idx + 1}</td>
+              <td><strong>${escape(fid)}</strong></td>
+              <td>${escape(names[f?.setting] || f?.setting || '')}</td>
+              <td>${r.stakes_label ? `<span class="decision-badge" data-decision="${escape(r.stakes_label)}">${escape(r.stakes_label)}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+              <td>${r.completed ? 'Complete' : 'Pending'}</td>
+              <td>${escape(r.notes || '')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <details class="drawer"><summary>Raw Stakes Session JSON</summary><div class="drawer-body">${json(s)}</div></details>
+  </div>`;
+  $('stakes-inspect-back').onclick = () => renderAdminPanel();
+}
+
+function computeStakesAgreementStats(byFamily, targetIds) {
+  let multiCount = 0, threePlus = 0, unanimous = 0;
+  let agreePairs = 0, totalPairs = 0;
+  let totalLabels = 0, highLabels = 0;
+  for (const fid of targetIds) {
+    const labels = (byFamily.get(fid) || []).map(x => x.label).filter(l => l === 'high' || l === 'low');
+    if (labels.length < 2) continue;
+    multiCount++;
+    if (labels.length >= 3) threePlus++;
+    if (new Set(labels).size === 1) unanimous++;
+    const n = labels.length;
+    const nHigh = labels.filter(l => l === 'high').length;
+    const nLow = n - nHigh;
+    agreePairs += (nHigh * (nHigh - 1) + nLow * (nLow - 1)) / 2;
+    totalPairs += (n * (n - 1)) / 2;
+    totalLabels += n;
+    highLabels += nHigh;
+  }
+  const po = totalPairs > 0 ? agreePairs / totalPairs : null;
+  let kappa = null;
+  if (po !== null && totalLabels > 0) {
+    const pHigh = highLabels / totalLabels;
+    const pLow = 1 - pHigh;
+    const pe = pHigh * pHigh + pLow * pLow;
+    kappa = pe < 1 ? (po - pe) / (1 - pe) : 1;
+  }
+  return { multiCount, threePlus, unanimous, po, kappa };
+}
+
+function renderAdminStakesTab(userById) {
+  const cfg = adminData.stakesConfig;
+  const activeSelected = cfg?.selected || [];
+  const activeCohortId = cfg?.cohort_id || (activeSelected.length ? computeCohortId(activeSelected) : '');
+  const draft = stakesDraft;
+  const draftSelected = draft.selected || [];
+  const draftSet = new Set(draftSelected);
+  const draftCohortId = draftSelected.length ? computeCohortId(draftSelected) : '';
+  const hasUnsaved = JSON.stringify(draftSelected) !== JSON.stringify(activeSelected)
+    || Boolean(draft.shuffle_per_reviewer) !== Boolean(cfg?.shuffle_per_reviewer ?? true)
+    || Boolean(draft.locked) !== Boolean(cfg?.locked ?? false)
+    || (draft.notes || '') !== (cfg?.notes || '');
+
+  const settingOrder = Object.keys(data.contexts || {});
+  const draftCounts = Object.fromEntries(settingOrder.map(s => [s, 0]));
+  for (const fid of draftSelected) {
+    const f = familyById.get(fid);
+    if (f && f.setting in draftCounts) draftCounts[f.setting]++;
+  }
+
+  const stakesRows = (adminData.stakesSessions || []).map(row => {
+    const u = userById.get(row.user_id);
+    const st = summarizeStakesSessionRow(row);
+    const matchesCohort = activeCohortId && row.payload?.cohort_id === activeCohortId;
+    return `<tr>
+      <td><strong>@${escape(u?.username || 'unknown')}</strong></td>
+      <td>${escape(row.payload?.reviewer || row.reviewer || '—')}</td>
+      <td><code>${escape(row.payload?.cohort_id || 'custom')}</code> ${matchesCohort ? '<span class="decision-badge" data-decision="keep">Active</span>' : '<span class="role-tag">Other</span>'}</td>
+      <td><strong>${st.done} / ${st.total}</strong></td>
+      <td>
+        <span class="decision-badge" data-decision="high">${st.high} high</span>
+        <span class="decision-badge" data-decision="low">${st.low} low</span>
+      </td>
+      <td>${escape(new Date(row.updated_at).toLocaleString())}</td>
+      <td style="white-space:nowrap">
+        <button type="button" class="sm" data-stakes-inspect="${escape(row.id)}">Inspect</button>
+        <button type="button" class="sm" data-stakes-dl="${escape(row.id)}">JSON</button>
+        <button type="button" class="sm" data-admin-del-sess="${escape(row.id)}" style="color:var(--red)">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const byFamily = new Map();
+  for (const row of (adminData.stakesSessions || [])) {
+    const u = userById.get(row.user_id);
+    const uname = u?.username || row.reviewer || row.user_id.slice(0, 8);
+    const s = row.payload || {};
+    for (const fid of (s.selected || [])) {
+      const r = s.reviews?.[fid];
+      if (!r || !r.stakes_label) continue;
+      if (!byFamily.has(fid)) byFamily.set(fid, []);
+      byFamily.get(fid).push({ username: uname, label: r.stakes_label, completed: Boolean(r.completed), notes: r.notes || '' });
+    }
+  }
+
+  const baseIds = stakesCmpFilter === 'cohort' && activeSelected.length
+    ? activeSelected
+    : [...new Set([...activeSelected, ...byFamily.keys()])];
+  const cmpEntries = baseIds
+    .map(fid => [fid, byFamily.get(fid) || []])
+    .filter(([, items]) => {
+      if (stakesCmpFilter === 'multi') return items.length >= 2;
+      if (stakesCmpFilter === 'disagree') return items.length >= 2 && new Set(items.map(x => x.label)).size > 1;
+      return true;
+    });
+  const stats = computeStakesAgreementStats(byFamily, activeSelected.length ? activeSelected : [...byFamily.keys()]);
+
+  const cmpRowsHtml = cmpEntries.map(([fid, items]) => {
+    const f = familyById.get(fid);
+    const nHigh = items.filter(x => x.label === 'high').length;
+    const nLow = items.filter(x => x.label === 'low').length;
+    const disagree = nHigh > 0 && nLow > 0;
+    let verdictHtml = '<span class="role-tag disabled">Pending</span>';
+    if (items.length === 1) {
+      verdictHtml = `<span class="decision-badge" data-decision="${escape(items[0].label)}">${escape(items[0].label)}</span> <span class="role-tag">1</span>`;
+    } else if (items.length >= 2) {
+      const maj = nHigh > nLow ? 'high' : nLow > nHigh ? 'low' : 'tie';
+      verdictHtml = maj === 'tie'
+        ? '<span class="decision-badge" data-decision="fix">Tie</span>'
+        : `<span class="decision-badge" data-decision="${maj}">${maj}</span> ${disagree ? '<span class="decision-badge" data-decision="fix">Split</span>' : '<span class="decision-badge" data-decision="keep">Unanimous</span>'}`;
+    }
+    return `<tr class="${disagree ? 'disagree-row' : ''}">
+      <td style="white-space:nowrap"><strong>${escape(fid)}</strong><br><small style="color:var(--muted)">${escape(names[f?.setting] || f?.setting || '')}</small></td>
+      <td>${verdictHtml}</td>
+      <td>${items.length ? items.map(it => `<div style="margin-bottom:4px">
+        <strong>@${escape(it.username)}</strong>
+        <span class="decision-badge" data-decision="${escape(it.label)}">${escape(it.label)}</span>
+        ${it.notes ? `<span style="color:var(--ink-2);margin-left:6px">${escape(it.notes)}</span>` : ''}
+      </div>`).join('') : '<span style="color:var(--muted)">No annotations yet</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <h2>Stakes Annotation Cohort (Shared Sample Set)</h2>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">
+            ${cfg
+              ? `Active in DB: <strong>${activeSelected.length} families</strong> · cohort <code>${escape(activeCohortId)}</code> · ${cfg.locked ? 'Locked' : 'Unlocked'} · updated ${escape(adminData.stakesConfigUpdatedAt ? new Date(adminData.stakesConfigUpdatedAt).toLocaleString() : '—')}`
+              : 'No cohort published yet. Generate or pick 40 families and click Save Cohort.'}
+          </div>
+        </div>
+        <div class="admin-toolbar-group">
+          <a href="../mmaci-review-stakes/" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:600">Open Stakes Desk ↗</a>
+        </div>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        <div class="create-user-grid">
+          <label class="field" style="margin:0">Sample Size
+            <input id="stakes-count" type="number" min="1" max="${data.families.length}" value="${escape(draft.count)}">
+          </label>
+          <label class="field" style="margin:0">Random Seed
+            <input id="stakes-seed" value="${escape(draft.seed)}">
+          </label>
+          <label class="field" style="margin:0">Sampling Mode
+            <select id="stakes-mode">
+              <option value="balanced" ${draft.mode === 'balanced' ? 'selected' : ''}>Balanced across settings</option>
+              <option value="pooled" ${draft.mode === 'pooled' ? 'selected' : ''}>Uniform across families</option>
+            </select>
+          </label>
+          <button type="button" id="stakes-generate">Generate Draft</button>
+        </div>
+
+        <div class="env-facts">
+          <span class="env-chip"><strong>Draft total:</strong> ${draftSelected.length} / ${data.families.length}</span>
+          ${settingOrder.map(s => `<span class="env-chip"><strong>${escape(names[s] || s)}:</strong> ${draftCounts[s]}</span>`).join('')}
+          ${draftCohortId ? `<span class="env-chip"><strong>Draft ID:</strong> <code>${escape(draftCohortId)}</code></span>` : ''}
+        </div>
+
+        <details class="drawer" style="margin-top:0">
+          <summary>Edit Exact Family IDs Manually (${draftSelected.length} selected)</summary>
+          <div class="drawer-body" style="display:flex;flex-direction:column;gap:12px">
+            <label class="field" style="margin:0">Paste family IDs (one per line or comma-separated)
+              <textarea id="stakes-ids-text" style="min-height:90px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px" placeholder="slack:1&#10;academic-email:AE-01&#10;...">${escape(draftSelected.join('\n'))}</textarea>
+            </label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button type="button" id="stakes-apply-text" class="sm">Apply Pasted IDs</button>
+              <button type="button" id="stakes-clear-draft" class="sm" style="color:var(--red)">Clear Selection</button>
+              <span id="stakes-text-msg" style="font-size:12px;color:var(--muted)"></span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;max-height:260px;overflow-y:auto;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)">
+              ${settingOrder.map(s => {
+                const fams = data.families.filter(f => f.setting === s);
+                return `<div>
+                  <div style="font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:4px">${escape(names[s] || s)} (${draftCounts[s]}/${fams.length})</div>
+                  ${fams.map(f => `<label style="display:flex;align-items:center;gap:6px;font-size:12px;padding:2px 0;cursor:pointer">
+                    <input type="checkbox" data-stakes-fam="${escape(f.id)}" ${draftSet.has(f.id) ? 'checked' : ''}>
+                    <span>${escape(f.id)}</span>
+                  </label>`).join('')}
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        </details>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding-top:4px">
+          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+            <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="stakes-shuffle" ${draft.shuffle_per_reviewer ? 'checked' : ''}>
+              Shuffle presentation order per reviewer (same 40 families)
+            </label>
+            <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="stakes-locked" ${draft.locked ? 'checked' : ''}>
+              Lock cohort
+            </label>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            ${hasUnsaved ? '<span style="font-size:12px;color:var(--amber);font-weight:600">Unsaved changes</span>' : ''}
+            <button type="button" id="stakes-save-cohort" class="primary" ${draftSelected.length ? '' : 'disabled'}>Save Cohort to DB</button>
+          </div>
+        </div>
+        <div id="stakes-cohort-msg" style="font-size:12.5px"></div>
+      </div>
+    </section>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Stakes Sessions (${(adminData.stakesSessions || []).length})</h2>
+        <div class="admin-toolbar-group">
+          <button type="button" id="stakes-export-json" class="primary sm">Export Stakes JSON</button>
+          <button type="button" id="stakes-export-csv" class="sm">Export Stakes CSV</button>
+        </div>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>User</th><th>Label</th><th>Cohort</th><th>Done</th><th>High / Low</th><th>Updated</th><th>Actions</th></tr></thead>
+          <tbody>${stakesRows || '<tr><td colspan="7" style="color:var(--muted)">No stakes annotation sessions yet.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2>Stakes Agreement &amp; Majority Vote (${cmpEntries.length} families)</h2>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px">
+            2+ reviewers: ${stats.multiCount} · 3+ reviewers: ${stats.threePlus}
+            ${stats.multiCount ? ` · Unanimous: ${stats.unanimous}/${stats.multiCount} (${Math.round(100 * stats.unanimous / stats.multiCount)}%)` : ''}
+            ${stats.po !== null ? ` · Pairwise agreement: ${(stats.po * 100).toFixed(1)}% · κ: ${stats.kappa !== null ? stats.kappa.toFixed(3) : '—'}` : ''}
+          </div>
+        </div>
+        <div class="admin-toolbar-group">
+          <select id="stakes-cmp-filter" style="padding:4px 8px;font-size:12px">
+            <option value="cohort" ${stakesCmpFilter === 'cohort' ? 'selected' : ''}>Active cohort (${activeSelected.length})</option>
+            <option value="all" ${stakesCmpFilter === 'all' ? 'selected' : ''}>All annotated families</option>
+            <option value="multi" ${stakesCmpFilter === 'multi' ? 'selected' : ''}>2+ reviewers</option>
+            <option value="disagree" ${stakesCmpFilter === 'disagree' ? 'selected' : ''}>Disagreements only</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Family</th><th>Majority / Status</th><th>Human Annotations</th></tr></thead>
+          <tbody>${cmpRowsHtml || '<tr><td colspan="3" style="color:var(--muted)">No matching families.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
 function renderAdminUsersTab() {
   const rowsHtml = adminData.users.map(u => {
     const isSelf = u.id === authState?.user?.id;
@@ -2800,10 +3176,17 @@ function renderAdminPanel() {
     <div class="admin-tabs" role="tablist">
       <button type="button" class="sm" data-admin-tab="sessions" aria-selected="${adminTab === 'sessions'}">Sessions &amp; Export</button>
       <button type="button" class="sm" data-admin-tab="comparison" aria-selected="${adminTab === 'comparison'}">Cross-Reviewer Comparison</button>
+      <button type="button" class="sm" data-admin-tab="stakes" aria-selected="${adminTab === 'stakes'}">Stakes Study (${(adminData.stakesSessions || []).length})</button>
       <button type="button" class="sm" data-admin-tab="users" aria-selected="${adminTab === 'users'}">Users (${adminData.users.length})</button>
     </div>
 
-    ${adminTab === 'sessions' ? renderAdminSessionsTab(userById) : adminTab === 'comparison' ? renderAdminComparisonTab(userById) : renderAdminUsersTab()}
+    ${adminTab === 'sessions'
+      ? renderAdminSessionsTab(userById)
+      : adminTab === 'comparison'
+        ? renderAdminComparisonTab(userById)
+        : adminTab === 'stakes'
+          ? renderAdminStakesTab(userById)
+          : renderAdminUsersTab()}
   </div>`;
 
   $('admin-back').onclick = () => {
@@ -2876,6 +3259,163 @@ function renderAdminPanel() {
         await loadAdminData();
         renderAdminPanel();
       } catch (e) { message(e.message, true); }
+    };
+  }
+  if ($('stakes-generate')) {
+    $('stakes-generate').onclick = () => {
+      const count = Number($('stakes-count').value);
+      const seed = $('stakes-seed').value.trim();
+      const mode = $('stakes-mode').value;
+      if (!Number.isInteger(count) || count < 1 || count > data.families.length) {
+        message(`Choose between 1 and ${data.families.length} families.`, true);
+        return;
+      }
+      if (!seed) {
+        message('Enter a seed to generate a reproducible stakes cohort.', true);
+        return;
+      }
+      const { selected } = sampleCases(data.families, count, seed, mode === 'balanced');
+      stakesDraft.count = count;
+      stakesDraft.seed = seed;
+      stakesDraft.mode = mode;
+      stakesDraft.selected = selected;
+      renderAdminPanel();
+    };
+  }
+  if ($('stakes-apply-text')) {
+    $('stakes-apply-text').onclick = () => {
+      const raw = ($('stakes-ids-text')?.value || '').split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+      const unique = [...new Set(raw)];
+      const invalid = unique.filter(id => !familyById.has(id));
+      const valid = unique.filter(id => familyById.has(id));
+      stakesDraft.selected = valid;
+      stakesDraft.count = valid.length || stakesDraft.count;
+      stakesDraft.mode = 'manual';
+      renderAdminPanel();
+      if ($('stakes-cohort-msg')) {
+        $('stakes-cohort-msg').style.color = invalid.length ? 'var(--amber)' : 'var(--green)';
+        $('stakes-cohort-msg').textContent = invalid.length
+          ? `Applied ${valid.length} valid IDs. Ignored unknown IDs: ${invalid.join(', ')}`
+          : `Applied ${valid.length} family IDs to draft.`;
+      }
+    };
+  }
+  if ($('stakes-clear-draft')) {
+    $('stakes-clear-draft').onclick = () => {
+      stakesDraft.selected = [];
+      stakesDraft.mode = 'manual';
+      renderAdminPanel();
+    };
+  }
+  for (const cb of document.querySelectorAll('[data-stakes-fam]')) {
+    cb.onchange = () => {
+      const fid = cb.dataset.stakesFam;
+      const set = new Set(stakesDraft.selected || []);
+      if (cb.checked) set.add(fid);
+      else set.delete(fid);
+      stakesDraft.selected = [...set];
+      stakesDraft.mode = 'manual';
+      renderAdminPanel();
+    };
+  }
+  if ($('stakes-shuffle')) {
+    $('stakes-shuffle').onchange = e => {
+      stakesDraft.shuffle_per_reviewer = e.target.checked;
+      renderAdminPanel();
+    };
+  }
+  if ($('stakes-locked')) {
+    $('stakes-locked').onchange = e => {
+      stakesDraft.locked = e.target.checked;
+      renderAdminPanel();
+    };
+  }
+  if ($('stakes-save-cohort')) {
+    $('stakes-save-cohort').onclick = async () => {
+      const selected = [...new Set(stakesDraft.selected || [])].filter(id => familyById.has(id));
+      if (!selected.length) {
+        message('Select at least 1 family before saving.', true);
+        return;
+      }
+      const nextCohortId = computeCohortId(selected);
+      const prevCohortId = adminData.stakesConfig?.cohort_id || '';
+      if (prevCohortId && prevCohortId !== nextCohortId && (adminData.stakesSessions || []).length > 0) {
+        if (!confirm('Reviewers have already started sessions on the previous cohort. Update the active cohort anyway?')) return;
+      }
+      const msgEl = $('stakes-cohort-msg');
+      if (msgEl) { msgEl.style.color = 'var(--muted)'; msgEl.textContent = 'Saving cohort to database…'; }
+      try {
+        const payload = {
+          cohort_id: nextCohortId,
+          selected,
+          count: selected.length,
+          seed: stakesDraft.seed || '',
+          mode: stakesDraft.mode || 'balanced',
+          shuffle_per_reviewer: Boolean(stakesDraft.shuffle_per_reviewer),
+          locked: Boolean(stakesDraft.locked),
+          notes: stakesDraft.notes || ''
+        };
+        await supaJson('/rest/v1/review_configs?on_conflict=key', {
+          method: 'POST',
+          headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify({
+            key: stakesConfigKey(),
+            dataset_sha256: data.dataset_sha256,
+            payload,
+            updated_by: authState?.user?.id || null,
+            updated_at: new Date().toISOString()
+          })
+        });
+        stakesDraft = null;
+        await loadAdminData();
+        renderAdminPanel();
+        if ($('stakes-cohort-msg')) {
+          $('stakes-cohort-msg').style.color = 'var(--green)';
+          $('stakes-cohort-msg').textContent = `Saved cohort ${nextCohortId} (${selected.length} families) to database.`;
+        }
+      } catch (err) {
+        if (msgEl) { msgEl.style.color = 'var(--red)'; msgEl.textContent = `Save failed: ${err.message}`; }
+      }
+    };
+  }
+  if ($('stakes-cmp-filter')) {
+    $('stakes-cmp-filter').onchange = e => {
+      stakesCmpFilter = e.target.value;
+      renderAdminPanel();
+    };
+  }
+  if ($('stakes-export-json')) {
+    $('stakes-export-json').onclick = () => {
+      const payload = {
+        exported_at: new Date().toISOString(),
+        task_type: 'stakes',
+        benchmark_version: data.benchmark_version,
+        dataset_sha256: data.dataset_sha256,
+        cohort: adminData.stakesConfig || null,
+        sessions: (adminData.stakesSessions || []).map(r => ({
+          ...r.payload,
+          _account_username: userById.get(r.user_id)?.username || null,
+          _user_id: r.user_id
+        }))
+      };
+      downloadFile(`mmaci-stakes-annotations-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2));
+    };
+  }
+  if ($('stakes-export-csv')) {
+    $('stakes-export-csv').onclick = () => {
+      downloadFile(`mmaci-stakes-annotations-${new Date().toISOString().slice(0, 10)}.csv`, buildStakesCsv(userById), 'text/csv;charset=utf-8');
+    };
+  }
+  for (const btn of document.querySelectorAll('[data-stakes-inspect]')) {
+    btn.onclick = () => {
+      const row = (adminData.stakesSessions || []).find(s => s.id === btn.dataset.stakesInspect);
+      if (row) inspectStakesSession(row, userById.get(row.user_id)?.username || row.reviewer || 'reviewer');
+    };
+  }
+  for (const btn of document.querySelectorAll('[data-stakes-dl]')) {
+    btn.onclick = () => {
+      const row = (adminData.stakesSessions || []).find(s => s.id === btn.dataset.stakesDl);
+      if (row) downloadFile(`mmaci-stakes-${row.id}.json`, JSON.stringify(row.payload, null, 2));
     };
   }
   if ($('create-user-form')) {
@@ -3004,7 +3544,10 @@ async function enterAuthenticatedApp() {
   queue();
   $('auth-gate').hidden = true;
   $('app-shell').hidden = false;
-  if (sessions.length) openSession(sessions[0]);
+  if (profile.role === 'admin' && (location.hash === '#admin' || location.hash === '#admin-stakes')) {
+    if (location.hash === '#admin-stakes') adminTab = 'stakes';
+    openAdminPanel();
+  } else if (sessions.length) openSession(sessions[0]);
   else intro();
 }
 
